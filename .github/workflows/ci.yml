@@ -22,13 +22,11 @@ jobs:
       with:
         languages: swift
         
-      with:
-        
     - name: Generate Xcode Project
       run: |
         arch -arm64 brew install xcodegen
         xcodegen generate
-      
+        
     - name: Build project for CodeQL
       run: |
         xcodebuild clean build \
@@ -37,7 +35,7 @@ jobs:
           -destination 'platform=macOS' \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO
-        
+          
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
 
@@ -48,8 +46,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-      with:
-        
     - name: Generate Xcode Project
       run: |
         arch -arm64 brew install xcodegen
@@ -75,8 +71,6 @@ jobs:
     - name: Install Tools
       run: |
         arch -arm64 brew install create-dmg xcodegen
-        
-      with:
         
     - name: Generate Xcode Project
       run: xcodegen generate
