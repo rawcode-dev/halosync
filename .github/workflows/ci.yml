@@ -28,7 +28,7 @@ jobs:
         xcodegen generate
         
     - name: Select Xcode 15.4
-      run: sudo xcode-select -s /Applications/Xcode_15.4.app
+      run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
       
     - name: Build project for CodeQL
       run: |
@@ -55,7 +55,7 @@ jobs:
         xcodegen generate
       
     - name: Select Xcode 15.4
-      run: sudo xcode-select -s /Applications/Xcode_15.4.app
+      run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
       
     - name: Run Tests
       run: |
@@ -82,7 +82,7 @@ jobs:
       run: xcodegen generate
       
     - name: Select Xcode 15.4
-      run: sudo xcode-select -s /Applications/Xcode_15.4.app
+      run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
       
     - name: Build Release App
       run: |
