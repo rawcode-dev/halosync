@@ -21,6 +21,11 @@ jobs:
       with:
         languages: swift
         
+    - name: Generate Xcode Project
+      run: |
+        brew install xcodegen
+        xcodegen generate
+        
     - name: Build project for CodeQL
       run: |
         xcodebuild clean build \
@@ -40,6 +45,11 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
+    - name: Generate Xcode Project
+      run: |
+        brew install xcodegen
+        xcodegen generate
+      
     - name: Run Tests
       run: |
         xcodebuild test \
@@ -57,8 +67,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Install create-dmg
-      run: brew install create-dmg
+    - name: Install Tools
+      run: |
+        brew install create-dmg xcodegen
+        
+    - name: Generate Xcode Project
+      run: xcodegen generate
       
     - name: Build Release App
       run: |
