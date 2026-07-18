@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="AppIcon.png" alt="HaloSync Logo" width="128" />
+  <img src="assets/AppIcon.png" alt="HaloSync Logo" width="128" />
 </p>
 
 <h1 align="center">HaloSync</h1>
