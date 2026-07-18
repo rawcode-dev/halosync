@@ -10,7 +10,7 @@ on:
 jobs:
   security-scan:
     name: CodeQL Security Scan
-    runs-on: macos-15
+    runs-on: macos-14
     permissions:
       security-events: write
     steps:
@@ -41,7 +41,7 @@ jobs:
 
   test:
     name: Run Unit Tests
-    runs-on: macos-15
+    runs-on: macos-14
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -62,7 +62,7 @@ jobs:
 
   build-dmg:
     name: Build & Package DMG
-    runs-on: macos-15
+    runs-on: macos-14
     needs: [test, security-scan]
     steps:
     - name: Checkout repository
