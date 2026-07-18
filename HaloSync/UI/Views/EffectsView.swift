@@ -22,6 +22,24 @@ struct EffectsView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                if settings.value.activeMode != .effects {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.yellow)
+                        Text("Screen Sync is currently active. Selecting an effect will override it.")
+                            .font(Typography.bodyMedium)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.haloCard)
+                    .clipShape(RoundedRectangle(cornerRadius: Radius.md))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Radius.md)
+                            .strokeBorder(Color.yellow.opacity(0.3), lineWidth: 1)
+                    )
+                }
+
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.md), count: 3),
                     spacing: Spacing.md
@@ -30,16 +48,11 @@ struct EffectsView: View {
                         EffectCard(
                             effect: effect,
                             time: time,
-                            isSelected: settings.value.activeMode == .effects
+                            isSelected: settings.value.activeMode == .effects && settings.value.activeEffectID == effect.id
                         ) {
                             withAnimation(Anim.snap) {
                                 settings.value.activeMode = .effects
-                                effectsEngine.activate(
-                                    effectID: effect.id,
-                                    ledCount: 120,
-                                    brightness: settings.value.brightness
-                                )
-                                effectsEngine.start()
+                                settings.value.activeEffectID = effect.id
                             }
                         }
                     }

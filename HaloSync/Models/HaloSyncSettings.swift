@@ -23,6 +23,9 @@ public struct HaloSyncSettings: Codable, Sendable, Equatable {
     // MARK: - Active Mode
 
     public var activeMode: AmbientMode = .ambient
+    
+    /// The currently selected lighting effect ID (used when activeMode == .effects)
+    public var activeEffectID: String? = nil
 
     // MARK: - Startup
 

@@ -46,11 +46,25 @@ public final class AppEnvironment: ObservableObject {
         self.effectsEngine     = EffectsEngine()
         self.profileStore      = UserDefaultsProfileStore()
         self.diagnostics       = diag
-        self.pipeline          = AmbientPipeline(fluid: fluid, diagnostics: diag)
+        self.pipeline          = AmbientPipeline(fluid: fluid, diagnostics: diag, effects: self.effectsEngine)
 
+        var lastSettings = loadedSettings
         self.settings.onSettingsChanged = { [weak self] newSettings in
+            guard let self else { return }
+            
+            let modeChanged = newSettings.activeMode != lastSettings.activeMode
+            let effectChanged = newSettings.activeEffectID != lastSettings.activeEffectID
+            
             HaloLogger.app.info("AppEnvironment: Settings changed, updating pipeline. Brightness: \(newSettings.brightness)")
-            self?.pipeline.updateSettings(newSettings)
+            self.pipeline.updateSettings(newSettings)
+            
+            if modeChanged || (effectChanged && newSettings.activeMode == .effects) {
+                Task {
+                    await self.restartPipeline()
+                }
+            }
+            
+            lastSettings = newSettings
         }
 
         HaloLogger.app.info("AppEnvironment initialized")

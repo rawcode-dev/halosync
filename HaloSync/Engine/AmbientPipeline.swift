@@ -40,6 +40,7 @@ public final class AmbientPipeline: ObservableObject {
     private let metal:       MetalProcessor?
     private let fluid:       FluidEngine
     private let diagnostics: DiagnosticsService
+    private let effects:     EffectsEngine
 
     // MARK: - Private State
 
@@ -49,11 +50,12 @@ public final class AmbientPipeline: ObservableObject {
 
     // MARK: - Init
 
-    public init(fluid: FluidEngine, diagnostics: DiagnosticsService) {
+    public init(fluid: FluidEngine, diagnostics: DiagnosticsService, effects: EffectsEngine) {
         self.capture     = SCKCaptureEngine()
         self.metal       = try? MetalProcessor()
         self.fluid       = fluid
         self.diagnostics = diagnostics
+        self.effects     = effects
 
         if self.metal == nil {
             HaloLogger.metal.warning("MetalProcessor unavailable — GPU sampling disabled.")
@@ -96,6 +98,36 @@ public final class AmbientPipeline: ObservableObject {
         }
 
         isRunning = true
+
+        self._currentLedCount = device.ledCount
+        self.updateSettings(settings)
+
+        // If in effects mode, we bypass screen capture and use EffectsEngine
+        if settings.activeMode == .effects {
+            effects.onFrame = { [weak self, weak udpController] frame in
+                guard let self, let ctrl = udpController else { return }
+                let order = self._currentProcessingSettings.colorOrder
+                
+                // Diagnostics
+                Task { @MainActor in
+                    self.lastSentFrame = frame
+                    self.lastFrameTime = .now
+                    self.diagnostics.record(fps: 60, captureLatencyMs: 0, gpuMs: 0, networkMs: 0)
+                }
+                
+                Task {
+                    try? await ctrl.send(frame: frame, colorOrder: order)
+                }
+            }
+            if let effectID = settings.activeEffectID {
+                effects.activate(effectID: effectID, ledCount: device.ledCount, brightness: settings.brightness)
+            } else {
+                effects.activate(effectID: "Rainbow", ledCount: device.ledCount, brightness: settings.brightness)
+            }
+            effects.start()
+            HaloLogger.app.info("AmbientPipeline: running (Effects Mode) ✓")
+            return
+        }
 
         // 3. Run the pipeline loop in a background task.
         let ledCount = device.ledCount
@@ -174,6 +206,9 @@ public final class AmbientPipeline: ObservableObject {
         keepAliveTask = nil
 
         await capture.stop()
+        effects.stop()
+        effects.onFrame = nil
+        
         await controller?.disconnect()
         controller = nil
         fluid.reset()

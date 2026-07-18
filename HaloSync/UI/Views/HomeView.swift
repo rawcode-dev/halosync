@@ -177,15 +177,18 @@ struct HomeView: View {
                     }
                     Spacer()
                     Toggle("", isOn: Binding(
-                        get: { isRunning },
+                        get: { isRunning && settings.value.activeMode != .effects },
                         set: { enable in
                             Task {
                                 if enable {
+                                    settings.value.activeMode = .ambient
                                     // Ensure hardware is on before syncing
                                     if !env.isDeviceOn {
                                         await env.toggleDevicePower(isOn: true)
                                     }
-                                    await env.startPipeline()
+                                    if !pipeline.isRunning {
+                                        await env.startPipeline()
+                                    }
                                 } else {
                                     await env.stopPipeline()
                                 }
