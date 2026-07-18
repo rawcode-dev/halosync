@@ -2,7 +2,7 @@ name: HaloSync
 options:
   bundleIdPrefix: com.halosync
   deploymentTarget:
-    macOS: "14.0"
+    macOS: "15.0"
   defaultConfig: Debug
   generateEmptyDirectories: true
   usesTabs: false
@@ -17,7 +17,7 @@ configs:
 
 settings:
   base:
-    SWIFT_VERSION: "5.10"
+    SWIFT_VERSION: "6.0"
     ENABLE_STRICT_CONCURRENCY_CHECKING: complete
     SWIFT_STRICT_CONCURRENCY: complete
     CLANG_ENABLE_MODULES: YES
@@ -30,7 +30,7 @@ settings:
     INFOPLIST_FILE: HaloSync/Resources/Info.plist
     CODE_SIGN_ENTITLEMENTS: HaloSync/Resources/HaloSync.entitlements
     ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    MACOSX_DEPLOYMENT_TARGET: "15.0"
     ENABLE_HARDENED_RUNTIME: YES
     GCC_OPTIMIZATION_LEVEL: 0
   configs:
@@ -53,7 +53,7 @@ targets:
       path: HaloSync/Resources/HaloSync.entitlements
     settings:
       PRODUCT_NAME: HaloSync
-      SWIFT_VERSION: "5.10"
+      SWIFT_VERSION: "6.0"
 
     scheme:
       testTargets:
@@ -67,7 +67,7 @@ targets:
     dependencies:
       - target: HaloSync
     settings:
-      SWIFT_VERSION: "5.10"
+      SWIFT_VERSION: "6.0"
       PRODUCT_BUNDLE_IDENTIFIER: com.halosync.tests
 
 schemes:
