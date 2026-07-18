@@ -4,7 +4,6 @@ options:
   deploymentTarget:
     macOS: "14.0"
   defaultConfig: Debug
-  xcodeVersion: "15.4"
   generateEmptyDirectories: true
   usesTabs: false
   indentWidth: 4
@@ -47,6 +46,7 @@ targets:
       - path: HaloSync
         excludes:
           - "**/*.md"
+          - "**/*.metal"
     info:
       path: HaloSync/Resources/Info.plist
     entitlements:

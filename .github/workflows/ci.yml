@@ -22,10 +22,7 @@ jobs:
       with:
         languages: swift
         
-    - name: Select Xcode
-      uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '15.4'
         
     - name: Generate Xcode Project
       run: |
@@ -51,10 +48,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Select Xcode
-      uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '15.4'
         
     - name: Generate Xcode Project
       run: |
@@ -82,10 +76,7 @@ jobs:
       run: |
         arch -arm64 brew install create-dmg xcodegen
         
-    - name: Select Xcode
-      uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '15.4'
         
     - name: Generate Xcode Project
       run: xcodegen generate
