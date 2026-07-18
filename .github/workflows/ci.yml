@@ -29,7 +29,7 @@ jobs:
         
     - name: Build project for CodeQL
       run: |
-        xcodebuild -downloadComponent MetalToolchain
+        for i in 1 2 3 4 5; do xcodebuild -downloadComponent MetalToolchain && break || sleep 5; done
         xcodebuild clean build \
           -project HaloSync.xcodeproj \
           -scheme HaloSync \
@@ -54,7 +54,7 @@ jobs:
       
     - name: Run Tests
       run: |
-        xcodebuild -downloadComponent MetalToolchain
+        for i in 1 2 3 4 5; do xcodebuild -downloadComponent MetalToolchain && break || sleep 5; done
         xcodebuild test \
           -project HaloSync.xcodeproj \
           -scheme HaloSync \
@@ -79,7 +79,7 @@ jobs:
       
     - name: Build Release App
       run: |
-        xcodebuild -downloadComponent MetalToolchain
+        for i in 1 2 3 4 5; do xcodebuild -downloadComponent MetalToolchain && break || sleep 5; done
         xcodebuild clean build \
           -project HaloSync.xcodeproj \
           -scheme HaloSync \
