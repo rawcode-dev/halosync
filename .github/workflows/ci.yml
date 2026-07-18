@@ -6,6 +6,21 @@ on:
     tags: [ "v*" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version Bump (ignored if Custom Tag is set)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      custom_tag:
+        description: 'Custom Tag (e.g. 2.0.0)'
+        required: false
+        type: string
 
 jobs:
   security-scan:
@@ -64,6 +79,8 @@ jobs:
     name: Build & Package DMG
     runs-on: macos-15
     needs: [test, security-scan]
+    permissions:
+      contents: write
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -104,10 +121,18 @@ jobs:
         name: HaloSync-macOS-Release
         path: HaloSync.dmg
         
+    - name: Bump version and push tag
+      id: tag_version
+      uses: mathieudutour/github-tag-action@v6.2
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        default_bump: ${{ github.event.inputs.bump_type || 'patch' }}
+        custom_tag: ${{ github.event.inputs.custom_tag }}
+        
     - name: Publish GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: build-${{ github.run_number }}
-        name: "Auto-Build #${{ github.run_number }}"
+        tag_name: ${{ steps.tag_version.outputs.new_tag }}
+        name: "HaloSync ${{ steps.tag_version.outputs.new_tag }}"
         files: HaloSync.dmg
         generate_release_notes: true
