@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/rawcode-dev/halosync/main/HaloSync.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/8/84/Apple_Computer_Logo_rainbow.svg'" width="100" />
+  <img src="AppIcon.png" alt="HaloSync Logo" width="128" />
 </p>
 
 <h1 align="center">HaloSync</h1>
