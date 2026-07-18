@@ -29,6 +29,7 @@ jobs:
         
     - name: Build project for CodeQL
       run: |
+        xcodebuild -downloadComponent MetalToolchain
         xcodebuild clean build \
           -project HaloSync.xcodeproj \
           -scheme HaloSync \
@@ -53,6 +54,7 @@ jobs:
       
     - name: Run Tests
       run: |
+        xcodebuild -downloadComponent MetalToolchain
         xcodebuild test \
           -project HaloSync.xcodeproj \
           -scheme HaloSync \
@@ -77,6 +79,7 @@ jobs:
       
     - name: Build Release App
       run: |
+        xcodebuild -downloadComponent MetalToolchain
         xcodebuild clean build \
           -project HaloSync.xcodeproj \
           -scheme HaloSync \
