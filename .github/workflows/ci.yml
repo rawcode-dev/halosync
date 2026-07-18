@@ -1,0 +1,90 @@
+name: HaloSync CI & Release
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  security-scan:
+    name: CodeQL Security Scan
+    runs-on: macos-latest
+    permissions:
+      security-events: write
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: swift
+        
+    - name: Build project for CodeQL
+      run: |
+        xcodebuild clean build \
+          -project HaloSync.xcodeproj \
+          -scheme HaloSync \
+          -destination 'platform=macOS' \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO
+        
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+
+  test:
+    name: Run Unit Tests
+    runs-on: macos-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Run Tests
+      run: |
+        xcodebuild test \
+          -project HaloSync.xcodeproj \
+          -scheme HaloSync \
+          -destination 'platform=macOS' \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO
+
+  build-dmg:
+    name: Build & Package DMG
+    runs-on: macos-latest
+    needs: [test, security-scan]
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install create-dmg
+      run: brew install create-dmg
+      
+    - name: Build Release App
+      run: |
+        xcodebuild clean build \
+          -project HaloSync.xcodeproj \
+          -scheme HaloSync \
+          -configuration Release \
+          -derivedDataPath build \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO
+        
+    - name: Create DMG Package
+      run: |
+        create-dmg \
+          --volname "HaloSync" \
+          --window-pos 200 120 \
+          --window-size 600 400 \
+          --icon-size 100 \
+          --icon "HaloSync.app" 150 190 \
+          --hide-extension "HaloSync.app" \
+          --app-drop-link 450 185 \
+          "HaloSync.dmg" \
+          "build/Build/Products/Release/HaloSync.app"
+          
+    - name: Upload DMG Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: HaloSync-macOS-Release
+        path: HaloSync.dmg
