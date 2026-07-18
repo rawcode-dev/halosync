@@ -1,0 +1,88 @@
+name: HaloSync
+options:
+  bundleIdPrefix: com.halosync
+  deploymentTarget:
+    macOS: "14.0"
+  defaultConfig: Debug
+  xcodeVersion: "16"
+  generateEmptyDirectories: true
+  usesTabs: false
+  indentWidth: 4
+  tabWidth: 4
+
+configs:
+  Debug: debug
+  Release: release
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    ENABLE_STRICT_CONCURRENCY_CHECKING: complete
+    SWIFT_STRICT_CONCURRENCY: complete
+    CLANG_ENABLE_MODULES: YES
+    ENABLE_TESTABILITY: YES
+    PRODUCT_BUNDLE_IDENTIFIER: com.halosync.app
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: 1
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: ""
+    INFOPLIST_FILE: HaloSync/Resources/Info.plist
+    CODE_SIGN_ENTITLEMENTS: HaloSync/Resources/HaloSync.entitlements
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    ENABLE_HARDENED_RUNTIME: YES
+    GCC_OPTIMIZATION_LEVEL: 0
+  configs:
+    Release:
+      GCC_OPTIMIZATION_LEVEL: s
+      SWIFT_OPTIMIZATION_LEVEL: -O
+
+targets:
+  HaloSync:
+    type: application
+    platform: macOS
+    sources:
+      - path: HaloSync
+        excludes:
+          - "**/*.md"
+    info:
+      path: HaloSync/Resources/Info.plist
+    entitlements:
+      path: HaloSync/Resources/HaloSync.entitlements
+    settings:
+      PRODUCT_NAME: HaloSync
+      SWIFT_VERSION: "6.0"
+    dependencies: []
+    scheme:
+      testTargets:
+        - HaloSyncTests
+
+  HaloSyncTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: HaloSyncTests
+    dependencies:
+      - target: HaloSync
+    settings:
+      SWIFT_VERSION: "6.0"
+      PRODUCT_BUNDLE_IDENTIFIER: com.halosync.tests
+
+schemes:
+  HaloSync:
+    build:
+      targets:
+        HaloSync: all
+        HaloSyncTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - name: HaloSyncTests
+          parallelizable: true
+          randomExecutionOrder: true
+    profile:
+      config: Release
+    archive:
+      config: Release
