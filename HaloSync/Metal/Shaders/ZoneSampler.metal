@@ -28,9 +28,9 @@ struct ZoneSamplerParams {
     uint   samplesPerZone;    // Sample points per LED zone.
     float  blackBarThreshold; // Luminance below this = suppress.
     float  gamma;             // Display gamma for linearization.
+    float  saturationBoost;   // Boost color vibrancy
     uint   textureWidth;
     uint   textureHeight;
-    uint   _padding;
 };
 
 // MARK: - Helpers
@@ -38,6 +38,11 @@ struct ZoneSamplerParams {
 /// Convert sRGB gamma-encoded value to linear light.
 inline float linearize(float v, float gamma) {
     return pow(max(v, 0.0f), gamma);
+}
+
+/// Convert linear light back to sRGB gamma-encoded value.
+inline float delinearize(float v, float gamma) {
+    return pow(max(v, 0.0f), 1.0f / gamma);
 }
 
 /// Compute luminance of a linear RGB color.
@@ -107,6 +112,25 @@ kernel void zoneSampler(
     float3 finalColor = (weightAccum > 0.0f)
         ? colorAccum / weightAccum
         : float3(0.0f);
+
+    // 1. Delinearize back to sRGB space for the LED strip (which expects gamma-encoded values)
+    // Failing to do this causes a "double gamma" effect making LEDs incredibly dark.
+    finalColor.r = delinearize(finalColor.r, params.gamma);
+    finalColor.g = delinearize(finalColor.g, params.gamma);
+    finalColor.b = delinearize(finalColor.b, params.gamma);
+
+    // 2. Apply Saturation Boost to make colors "pop"
+    // params.saturationBoost (ambientStrength) is 0.0 to 1.0.
+    // We map 0.0 -> 1.0x (normal), 1.0 -> 2.0x (double saturation)
+    float lumFinal = luminance(finalColor);
+    float satMult = 1.0f + (params.saturationBoost * 1.0f);
+    finalColor = mix(float3(lumFinal), finalColor, satMult);
+
+    // 3. Prevent absolute black if there is some light on the screen
+    // This creates a smoother ambient glow that doesn't just cut off abruptly
+    if (lumFinal > 0.001f && lumFinal < 0.02f) {
+        finalColor = max(finalColor, float3(0.02f)); // 2% minimum glow floor
+    }
 
     outBuffer[gid].r = saturate(finalColor.r);
     outBuffer[gid].g = saturate(finalColor.g);

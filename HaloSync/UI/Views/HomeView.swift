@@ -10,7 +10,6 @@ struct HomeView: View {
     @EnvironmentObject private var env: AppEnvironment
     @EnvironmentObject private var settings: HaloSyncSettingsStore
     @EnvironmentObject private var monitor: ControllerMonitor
-    @EnvironmentObject private var diagnostics: DiagnosticsService
     @EnvironmentObject private var pipeline: AmbientPipeline
 
     @State private var glowPulse = false
@@ -26,7 +25,6 @@ struct HomeView: View {
                 VStack(spacing: Spacing.xl) {
                     statusRow
                     controlsSection
-                    metricsRow
                 }
                 .disabled(!env.isDeviceOn)
                 .opacity(env.isDeviceOn ? 1.0 : 0.5)
@@ -215,10 +213,15 @@ struct HomeView: View {
                             ) {
                                 withAnimation(Anim.snap) {
                                     settings.value.activeMode = mode
-                                    let defaults = mode.defaultParameters
-                                    settings.value.brightness = defaults.brightness
-                                    settings.value.smoothness = defaults.smoothness
-                                    settings.value.ambientStrength = defaults.ambientStrength
+                                    if mode != .custom {
+                                        let defaults = mode.defaultParameters
+                                        settings.value.brightness = defaults.brightness
+                                        settings.value.smoothness = defaults.smoothness
+                                        settings.value.ambientStrength = defaults.ambientStrength
+                                    }
+                                }
+                                if !pipeline.isRunning {
+                                    Task { await env.startPipeline() }
                                 }
                             }
                         }
@@ -233,29 +236,32 @@ struct HomeView: View {
                     accentColors: [.haloPrimary, .haloAccent],
                     icon: "sun.max.fill"
                 )
+                .disabled(settings.value.activeMode != .custom)
+                .opacity(settings.value.activeMode != .custom ? 0.5 : 1.0)
+                
                 HaloSlider(
                     title: "Smoothness",
                     value: $settings.value.smoothness,
                     accentColors: [.haloAccent, .haloPrimary],
                     icon: "drop.fill"
                 )
+                .disabled(settings.value.activeMode != .custom)
+                .opacity(settings.value.activeMode != .custom ? 0.5 : 1.0)
+                
                 HaloSlider(
                     title: "Ambient Strength",
                     value: $settings.value.ambientStrength,
                     accentColors: [.haloPrimary, .haloSuccess],
                     icon: "sparkles"
                 )
+                .disabled(settings.value.activeMode != .custom)
+                .opacity(settings.value.activeMode != .custom ? 0.5 : 1.0)
             }
         }
     }
 
     private var metricsRow: some View {
-        let snap = diagnostics.snapshot
-        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.sm), count: 3), spacing: Spacing.sm) {
-            MetricCard(title: "FPS", value: String(format: "%.0f", snap.captureFPS), unit: "fps", accent: .haloSuccess, icon: "speedometer")
-            MetricCard(title: "Latency", value: String(format: "%.1f", snap.totalLatencyMs), unit: "ms", accent: .haloPrimary, icon: "timer")
-            MetricCard(title: "GPU", value: String(format: "%.1f", snap.gpuProcessingMs), unit: "ms", accent: .haloAccent, icon: "cpu")
-        }
+        MetricsRow()
     }
 
     private var backgroundGradient: some View {
@@ -269,6 +275,21 @@ struct HomeView: View {
             endPoint: .bottomTrailing
         )
         .ignoresSafeArea()
+    }
+}
+
+// MARK: - MetricsRow
+
+struct MetricsRow: View {
+    @EnvironmentObject private var diagnostics: DiagnosticsService
+
+    var body: some View {
+        let snap = diagnostics.snapshot
+        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.sm), count: 3), spacing: Spacing.sm) {
+            MetricCard(title: "FPS", value: String(format: "%.0f", snap.captureFPS), unit: "fps", accent: .haloSuccess, icon: "speedometer")
+            MetricCard(title: "Latency", value: String(format: "%.1f", snap.totalLatencyMs), unit: "ms", accent: .haloPrimary, icon: "timer")
+            MetricCard(title: "GPU", value: String(format: "%.1f", snap.gpuProcessingMs), unit: "ms", accent: .haloAccent, icon: "cpu")
+        }
     }
 }
 

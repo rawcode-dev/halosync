@@ -87,14 +87,16 @@ public final class AmbientPipeline: ObservableObject {
         }
         self.controller = udpController
 
-        // 2. Start capture stream.
-        let frameStream: AsyncStream<CaptureFrame>
-        do {
-            frameStream = try await capture.start(display: display)
-        } catch {
-            HaloLogger.capture.error("Pipeline failed to start capture: \(error)")
-            await udpController.disconnect()
-            return
+        // 2. Start capture stream if not in Effects Mode.
+        var frameStream: AsyncStream<CaptureFrame>? = nil
+        if settings.activeMode != .effects {
+            do {
+                frameStream = try await capture.start(display: display)
+            } catch {
+                HaloLogger.capture.error("Pipeline failed to start capture: \(error)")
+                await udpController.disconnect()
+                return
+            }
         }
 
         isRunning = true
@@ -152,9 +154,9 @@ public final class AmbientPipeline: ObservableObject {
         }
 
         pipelineTask = Task.detached(priority: .userInteractive) { [weak self] in
-            guard let self else { return }
+            guard let self, let stream = frameStream else { return }
 
-            for await frame in frameStream {
+            for await frame in stream {
                 guard !Task.isCancelled else { break }
                 let m = self.metal
                 let f = self.fluid
@@ -274,6 +276,9 @@ public final class AmbientPipeline: ObservableObject {
                 self.lastFrameTime = .now
             }
         }
+        
+        // To ensure thread-safety, we rely on the screen capture or keep-alive loop to push new frames.
+        // Screen capture automatically pushes frames, so it will pick up the new settings on the next frame.
     }
 
     // MARK: - Private
@@ -282,6 +287,7 @@ public final class AmbientPipeline: ObservableObject {
     private var _currentProcessingSettings = ProcessingSettings()
     private var _currentLayoutBuffer: SendableMTLBuffer?
     private var _currentLedCount: Int = 0
+    private var _lastCaptureFrame: CaptureFrame?
 
     nonisolated private func processFrame(
         frame:              CaptureFrame,
@@ -294,6 +300,10 @@ public final class AmbientPipeline: ObservableObject {
         fluid:              FluidEngine,
         diagnostics:        DiagnosticsService
     ) async {
+        await MainActor.run {
+            self._lastCaptureFrame = frame
+        }
+        
         let frameStart = ContinuousClock.now
 
         // --- GPU: Zone Sampling ---

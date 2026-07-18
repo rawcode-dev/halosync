@@ -28,9 +28,9 @@ struct ZoneSamplerParams {
     var samplesPerZone:    UInt32
     var blackBarThreshold: Float
     var gamma:             Float
+    var saturationBoost:   Float
     var textureWidth:      UInt32
     var textureHeight:     UInt32
-    var _padding:          UInt32
 }
 
 // MARK: - MetalProcessor
@@ -122,9 +122,9 @@ public final class MetalProcessor: @unchecked Sendable {
             samplesPerZone:    UInt32(settings.samplesPerZone),
             blackBarThreshold: settings.blackBarDetection ? settings.blackBarThreshold : 0,
             gamma:             settings.gamma,
+            saturationBoost:   settings.ambientStrength,
             textureWidth:      UInt32(texture.width),
-            textureHeight:     UInt32(texture.height),
-            _padding:          0
+            textureHeight:     UInt32(texture.height)
         )
 
         // 4. Encode and dispatch.

@@ -58,29 +58,27 @@ struct HaloSlider: View {
                         )
                         .animation(Anim.snap, value: value)
 
-                    // Native slider (invisible but handles gestures)
-                    Slider(
-                        value: Binding(
-                            get: { value },
-                            set: { newValue in
-                                value = newValue
-                                if !isDragging { isDragging = true }
-                            }
-                        ),
-                        in: range,
-                        onEditingChanged: { editing in
-                            withAnimation(Anim.snap) {
-                                isDragging = editing
-                            }
-                        }
-                    )
-                    .opacity(0.015) // Nearly invisible — just for interaction.
-                    .frame(width: proxy.size.width)
+                    // Interaction layer
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 0)
+                                .onChanged { drag in
+                                    if !isDragging {
+                                        withAnimation(Anim.snap) { isDragging = true }
+                                    }
+                                    let percentage = max(0, min(1, drag.location.x / proxy.size.width))
+                                    let newValue = range.lowerBound + Float(percentage) * (range.upperBound - range.lowerBound)
+                                    value = newValue
+                                }
+                                .onEnded { _ in
+                                    withAnimation(Anim.snap) { isDragging = false }
+                                }
+                        )
                 }
                 .frame(height: proxy.size.height, alignment: .center)
             }
-            .frame(height: isDragging ? 20 : 16)
-            .animation(Anim.snap, value: isDragging)
+            .frame(height: 24) // Fixed height to prevent layout invalidation during drag
         }
     }
 }

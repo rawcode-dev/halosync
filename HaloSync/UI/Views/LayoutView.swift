@@ -103,7 +103,11 @@ struct LayoutView: View {
                                 
                                 Button {
                                     Task {
-                                        await env.restartPipeline()
+                                        if !env.pipeline.isRunning {
+                                            await env.startPipeline()
+                                        } else {
+                                            await env.restartPipeline()
+                                        }
                                     }
                                 } label: {
                                     Text("Apply Changes to LEDs")

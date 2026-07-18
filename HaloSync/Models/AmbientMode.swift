@@ -15,6 +15,7 @@ public enum AmbientMode: String, Codable, CaseIterable, Sendable, Identifiable {
     case music      = "Music"
     case effects    = "Effects"
     case night      = "Night"
+    case custom     = "Custom"
 
     public var id: String { rawValue }
 
@@ -32,6 +33,7 @@ public enum AmbientMode: String, Codable, CaseIterable, Sendable, Identifiable {
         case .music:    return "music.note"
         case .effects:  return "wand.and.stars"
         case .night:    return "moon.fill"
+        case .custom:   return "slider.horizontal.3"
         }
     }
 
@@ -55,6 +57,8 @@ public enum AmbientMode: String, Codable, CaseIterable, Sendable, Identifiable {
             return ModeParameters(brightness: 0.80, smoothness: 0.30, ambientStrength: 1.00, targetFPS: 60)
         case .night:
             return ModeParameters(brightness: 0.15, smoothness: 0.90, ambientStrength: 0.20, targetFPS: 10)
+        case .custom:
+            return ModeParameters(brightness: 0.80, smoothness: 0.50, ambientStrength: 0.80, targetFPS: 60)
         }
     }
 }

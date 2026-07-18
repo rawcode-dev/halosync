@@ -7,6 +7,8 @@ import SwiftUI
 struct EffectsView: View {
     @EnvironmentObject private var effectsEngine: EffectsEngine
     @EnvironmentObject private var settings: HaloSyncSettingsStore
+    @EnvironmentObject private var env: AppEnvironment
+    @EnvironmentObject private var pipeline: AmbientPipeline
 
     @State private var time: Double = 0
     private let timer = Timer.publish(every: 1.0/60.0, on: .main, in: .common).autoconnect()
@@ -53,6 +55,9 @@ struct EffectsView: View {
                             withAnimation(Anim.snap) {
                                 settings.value.activeMode = .effects
                                 settings.value.activeEffectID = effect.id
+                            }
+                            if !pipeline.isRunning {
+                                Task { await env.startPipeline() }
                             }
                         }
                     }
