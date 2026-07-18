@@ -23,7 +23,7 @@ jobs:
         
     - name: Generate Xcode Project
       run: |
-        brew install xcodegen
+        arch -arm64 brew install xcodegen
         xcodegen generate
         
     - name: Build project for CodeQL
@@ -47,7 +47,7 @@ jobs:
       
     - name: Generate Xcode Project
       run: |
-        brew install xcodegen
+        arch -arm64 brew install xcodegen
         xcodegen generate
       
     - name: Run Tests
@@ -69,7 +69,7 @@ jobs:
       
     - name: Install Tools
       run: |
-        brew install create-dmg xcodegen
+        arch -arm64 brew install create-dmg xcodegen
         
     - name: Generate Xcode Project
       run: xcodegen generate
