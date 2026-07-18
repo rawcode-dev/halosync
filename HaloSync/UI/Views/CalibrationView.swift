@@ -7,6 +7,7 @@ import SwiftUI
 // MARK: - CalibrationView
 
 struct CalibrationView: View {
+    @EnvironmentObject private var env: AppEnvironment
     @EnvironmentObject private var monitor: ControllerMonitor
     @EnvironmentObject private var settings: HaloSyncSettingsStore
 
@@ -28,6 +29,11 @@ struct CalibrationView: View {
             .padding(Spacing.xl)
         }
         .navigationTitle("Calibration")
+        .onAppear {
+            if env.pipeline.isRunning {
+                Task { await env.stopPipeline() }
+            }
+        }
     }
 
     // MARK: - Sections
@@ -118,22 +124,81 @@ struct CalibrationView: View {
     private func runTest(_ test: CalibrationTest) async {
         isRunning = true
         HaloLogger.calibration.info("Running test: \(test.name)")
-        // TODO: Phase 11 — connect to CalibrationEngine and send frames to controller
-        try? await Task.sleep(for: .seconds(0.5))
+        
+        guard let device = monitor.discoveredDevice else {
+            isRunning = false
+            return
+        }
+        
+        let controller = WLEDUDPController(deviceInfo: device)
+        do {
+            let port: UInt16 = device.activeProtocol == .udpRaw ? 21324 : 4048
+            try await controller.connect(to: device.address, port: port)
+            let colors = Array(repeating: test.ledColor, count: device.ledCount)
+            let frame = LEDFrame(colors: colors, timestamp: .now, source: .calibration)
+            try await controller.send(frame: frame, colorOrder: settings.value.colorOrder)
+            try await Task.sleep(for: .milliseconds(100))
+            await controller.disconnect()
+        } catch {
+            HaloLogger.calibration.error("Failed to run test: \(error)")
+        }
+        
         isRunning = false
     }
 
     private func runWalk() async {
         isRunning = true
         HaloLogger.calibration.info("Running LED walk")
-        // TODO: Phase 11
-        try? await Task.sleep(for: .seconds(1))
+        
+        guard let device = monitor.discoveredDevice else {
+            isRunning = false
+            return
+        }
+        
+        let controller = WLEDUDPController(deviceInfo: device)
+        do {
+            let port: UInt16 = device.activeProtocol == .udpRaw ? 21324 : 4048
+            try await controller.connect(to: device.address, port: port)
+            
+            for i in 0..<device.ledCount {
+                var colors = Array(repeating: LEDColor.black, count: device.ledCount)
+                colors[i] = .white
+                let frame = LEDFrame(colors: colors, timestamp: .now, source: .calibration)
+                try await controller.send(frame: frame, colorOrder: settings.value.colorOrder)
+                try await Task.sleep(for: .milliseconds(50)) // Wait slightly for visually pleasing walk
+            }
+            
+            // Turn off at end
+            let offColors = Array(repeating: LEDColor.black, count: device.ledCount)
+            try await controller.send(frame: LEDFrame(colors: offColors, timestamp: .now, source: .calibration), colorOrder: settings.value.colorOrder)
+            try await Task.sleep(for: .milliseconds(50))
+            
+            await controller.disconnect()
+        } catch {
+            HaloLogger.calibration.error("Walk failed: \(error)")
+        }
+        
         isRunning = false
     }
 
     private func turnOff() async {
+        selectedTest = nil
         HaloLogger.calibration.info("Turning off all LEDs")
-        // TODO: Phase 11
+        
+        guard let device = monitor.discoveredDevice else { return }
+        
+        let controller = WLEDUDPController(deviceInfo: device)
+        do {
+            let port: UInt16 = device.activeProtocol == .udpRaw ? 21324 : 4048
+            try await controller.connect(to: device.address, port: port)
+            let colors = Array(repeating: LEDColor.black, count: device.ledCount)
+            let frame = LEDFrame(colors: colors, timestamp: .now, source: .calibration)
+            try await controller.send(frame: frame, colorOrder: settings.value.colorOrder)
+            try await Task.sleep(for: .milliseconds(100))
+            await controller.disconnect()
+        } catch {
+            HaloLogger.calibration.error("Turn off failed: \(error)")
+        }
     }
 }
 
