@@ -64,6 +64,29 @@ public struct HaloSyncSettings: Codable, Sendable, Equatable {
 
     /// UDP port override.
     public var udpPort: UInt16 = 4048
+    
+    // MARK: - Layout
+    
+    /// User-configured mapping geometry.
+    public var layout: CustomLayout = .init()
+    
+    /// True if the hardware layout test mode is overriding the pipeline.
+    public var isLayoutTestActive: Bool = false
+    
+    /// True if the live screen preview is shown in the Layout tab.
+    public var showLivePreview: Bool = true
+    
+    /// Luminance threshold below which a region is classified as "black bar".
+    public var blackBarThreshold: Float = 0.02
+    
+    /// True to dynamically ignore black letterbox/pillarbox bars.
+    public var blackBarDetection: Bool = true
+    
+    // Manual crop percentages (0.0 to 100.0)
+    public var cropTop: Float = 0.0
+    public var cropBottom: Float = 0.0
+    public var cropLeft: Float = 0.0
+    public var cropRight: Float = 0.0
 
     // MARK: - Active Profile
 

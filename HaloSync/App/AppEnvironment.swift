@@ -139,6 +139,14 @@ public final class AppEnvironment: ObservableObject {
             await startPipeline()
         }
     }
+    
+    /// Forces the pipeline to restart (useful to apply certain layout/crop changes if they do not update live).
+    public func restartPipeline() async {
+        if pipeline.isRunning {
+            await stopPipeline()
+            await startPipeline()
+        }
+    }
 
     // MARK: - Power Control
 

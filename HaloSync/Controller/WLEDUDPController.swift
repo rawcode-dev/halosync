@@ -80,7 +80,7 @@ public final class WLEDUDPController: LEDControllerProtocol, @unchecked Sendable
         HaloLogger.network.info("UDP disconnected.")
     }
 
-    public func send(frame: LEDFrame) async throws {
+    public func send(frame: LEDFrame, colorOrder: ColorOrder) async throws {
         guard let conn = lock.withLock({ connection }),
               conn.state == .ready else {
             throw LEDControllerError.notConnected
@@ -91,7 +91,7 @@ public final class WLEDUDPController: LEDControllerProtocol, @unchecked Sendable
             nextSequence = nextSequence == 15 ? 1 : nextSequence + 1
             return (_deviceInfo, s)
         }
-        let data = encoder.encode(frame: frame, brightness: 1.0, colorOrder: .rgb, sequenceNumber: seq)
+        let data = encoder.encode(frame: frame, brightness: 1.0, colorOrder: colorOrder, sequenceNumber: seq)
 
         // For UDP, we want fire-and-forget. Blocking on `.contentProcessed` can stall the entire video
         // pipeline if the network stack delays packet acceptance (e.g., mDNS resolution stalls).

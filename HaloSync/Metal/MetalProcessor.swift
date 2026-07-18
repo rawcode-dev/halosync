@@ -9,6 +9,7 @@
 import Metal
 import CoreVideo
 import Foundation
+import simd
 
 // MARK: - MetalProcessorError
 
@@ -23,41 +24,13 @@ public enum MetalProcessorError: Error {
 
 struct ZoneSamplerParams {
     var ledCount:          UInt32
-    var topCount:          UInt32
-    var rightCount:        UInt32
-    var bottomCount:       UInt32
-    var leftCount:         UInt32
     var samplingDepth:     UInt32
     var samplesPerZone:    UInt32
     var blackBarThreshold: Float
     var gamma:             Float
     var textureWidth:      UInt32
     var textureHeight:     UInt32
-}
-
-// MARK: - LEDZoneLayout
-
-/// Describes how LEDs are distributed across screen edges.
-public struct LEDZoneLayout: Sendable {
-    public var topCount:    Int
-    public var rightCount:  Int
-    public var bottomCount: Int
-    public var leftCount:   Int
-
-    public var totalCount: Int { topCount + rightCount + bottomCount + leftCount }
-
-    /// Creates a symmetric layout given total LED count.
-    /// Default: equal distribution across all 4 edges.
-    public static func symmetric(total: Int) -> LEDZoneLayout {
-        let side = total / 4
-        let extra = total % 4
-        return LEDZoneLayout(
-            topCount:    side + (extra > 0 ? 1 : 0),
-            rightCount:  side + (extra > 1 ? 1 : 0),
-            bottomCount: side + (extra > 2 ? 1 : 0),
-            leftCount:   side
-        )
-    }
+    var _padding:          UInt32
 }
 
 // MARK: - MetalProcessor
@@ -109,19 +82,26 @@ public final class MetalProcessor: @unchecked Sendable {
     }
 
     // MARK: - Public API
+    
+    /// Creates a GPU buffer from normalized screen coordinates.
+    public func makeLayoutBuffer(coordinates: [simd_float2]) -> MTLBuffer? {
+        let size = coordinates.count * MemoryLayout<simd_float2>.stride
+        return device.makeBuffer(bytes: coordinates, length: size, options: .storageModeShared)
+    }
 
     /// Processes a captured pixel buffer through the GPU zone sampler.
     /// - Parameters:
     ///   - pixelBuffer: GPU-backed CVPixelBuffer from ScreenCaptureKit.
     ///   - settings:    Processing configuration.
-    ///   - layout:      LED zone distribution.
+    ///   - ledCount:    Total LEDs.
+    ///   - layoutBuffer: Pre-compiled GPU buffer of float2 coordinates.
     /// - Returns: Array of per-LED colors.
     public func process(
-        pixelBuffer: CVPixelBuffer,
-        settings:    ProcessingSettings,
-        layout:      LEDZoneLayout
+        pixelBuffer:  CVPixelBuffer,
+        settings:     ProcessingSettings,
+        ledCount:     Int,
+        layoutBuffer: MTLBuffer
     ) throws -> [LEDColor] {
-        let ledCount = layout.totalCount
         guard ledCount > 0 else { return [] }
 
         // 1. Create Metal texture from CVPixelBuffer (zero-copy via IOSurface).
@@ -138,16 +118,13 @@ public final class MetalProcessor: @unchecked Sendable {
         // 3. Build params.
         var params = ZoneSamplerParams(
             ledCount:          UInt32(ledCount),
-            topCount:          UInt32(layout.topCount),
-            rightCount:        UInt32(layout.rightCount),
-            bottomCount:       UInt32(layout.bottomCount),
-            leftCount:         UInt32(layout.leftCount),
             samplingDepth:     UInt32(settings.samplingDepth),
             samplesPerZone:    UInt32(settings.samplesPerZone),
             blackBarThreshold: settings.blackBarDetection ? settings.blackBarThreshold : 0,
             gamma:             settings.gamma,
             textureWidth:      UInt32(texture.width),
-            textureHeight:     UInt32(texture.height)
+            textureHeight:     UInt32(texture.height),
+            _padding:          0
         )
 
         // 4. Encode and dispatch.
@@ -160,6 +137,7 @@ public final class MetalProcessor: @unchecked Sendable {
         cmdEncoder.setTexture(texture, index: 0)
         cmdEncoder.setBuffer(outputBuffer, offset: 0, index: 0)
         cmdEncoder.setBytes(&params, length: MemoryLayout<ZoneSamplerParams>.size, index: 1)
+        cmdEncoder.setBuffer(layoutBuffer, offset: 0, index: 2)
 
         let threadsPerGroup = MTLSize(width: min(pipeline.maxTotalThreadsPerThreadgroup, ledCount), height: 1, depth: 1)
         let threadgroups    = MTLSize(width: (ledCount + threadsPerGroup.width - 1) / threadsPerGroup.width, height: 1, depth: 1)

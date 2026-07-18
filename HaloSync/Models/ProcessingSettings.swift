@@ -39,6 +39,14 @@ public struct ProcessingSettings: Sendable, Equatable, Codable {
     /// Luminance threshold below which a region is classified as "black bar".
     public var blackBarThreshold: Float = 0.02
 
+    // MARK: - Manual Crop
+    
+    // Manual crop percentages (0.0 to 100.0)
+    public var cropTop: Float = 0.0
+    public var cropBottom: Float = 0.0
+    public var cropLeft: Float = 0.0
+    public var cropRight: Float = 0.0
+
     // MARK: - HDR
 
     /// Whether the source display is HDR. Adjusts tone-mapping.
@@ -48,6 +56,14 @@ public struct ProcessingSettings: Sendable, Equatable, Codable {
 
     /// Byte ordering expected by the LED strip.
     public var colorOrder: ColorOrder = .rgb
+
+    // MARK: - Layout & Testing
+    
+    /// User configured geometry mapping.
+    public var layout: CustomLayout = .init()
+    
+    /// If true, overrides ambient colors with a static segment test pattern.
+    public var isLayoutTestActive: Bool = false
 
     // MARK: - Init
 

@@ -8,6 +8,15 @@
 
 import Foundation
 import SwiftUI
+import Metal
+import simd
+import VideoToolbox
+
+/// Unchecked wrapper to safely pass MTLBuffer across actor boundaries.
+/// Metal objects are inherently thread-safe in Apple's frameworks.
+private struct SendableMTLBuffer: @unchecked Sendable {
+    let buffer: MTLBuffer
+}
 
 // MARK: - AmbientPipeline
 
@@ -23,6 +32,7 @@ public final class AmbientPipeline: ObservableObject {
     @Published public private(set) var currentFPS: Double = 0
     @Published public private(set) var latencyMs: Double = 0
     @Published public private(set) var gpuMs: Double = 0
+    @Published public private(set) var previewImage: CGImage?
 
     // MARK: - Dependencies
 
@@ -89,20 +99,22 @@ public final class AmbientPipeline: ObservableObject {
 
         // 3. Run the pipeline loop in a background task.
         let ledCount = device.ledCount
-        let layout = LEDZoneLayout.symmetric(total: ledCount)
+        self._currentLedCount = ledCount
         
         self.updateSettings(settings)
 
         // Keep-alive task for static screens. WLED reverts to internal effects after 2500ms
         // of no DDP packets. If SCK drops frames because the screen is static, we must resend.
+        // We poll every 500ms to ensure we stay well within the WLED timeout window.
         keepAliveTask = Task { [weak self, weak udpController] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
+                try? await Task.sleep(for: .milliseconds(500))
                 guard let self, let ctrl = udpController else { break }
                 
                 let (frame, time) = (self.lastSentFrame, self.lastFrameTime)
-                if let frame, time.duration(to: .now) >= .seconds(1) {
-                    try? await ctrl.send(frame: frame)
+                let currentOrder = self._currentProcessingSettings.colorOrder
+                if let frame, time.duration(to: .now) >= .milliseconds(500) {
+                    try? await ctrl.send(frame: frame, colorOrder: currentOrder)
                 }
             }
         }
@@ -116,13 +128,28 @@ public final class AmbientPipeline: ObservableObject {
                 let f = self.fluid
                 let d = self.diagnostics
                 
-                let (liveBrightness, liveSettings) = await MainActor.run {
-                    (self._currentBrightness, self._currentProcessingSettings)
+                let (liveBrightness, liveSettings, liveLayoutBufferBox) = await MainActor.run {
+                    (self._currentBrightness, self._currentProcessingSettings, self._currentLayoutBuffer)
                 }
+
+                // --- HARDWARE TEST BYPASS ---
+                if liveSettings.isLayoutTestActive {
+                    let testColors = LayoutTestGenerator.generate(layout: liveSettings.layout, totalLeds: ledCount)
+                    let outFrame = LEDFrame(colors: testColors, timestamp: .now, source: .calibration)
+                    try? await udpController.send(frame: outFrame, colorOrder: liveSettings.colorOrder)
+                    
+                    await MainActor.run {
+                        self.lastSentFrame = outFrame
+                        self.lastFrameTime = .now
+                    }
+                    continue
+                }
+                // -----------------------------
 
                 await self.processFrame(
                     frame:              frame,
-                    layout:             layout,
+                    ledCount:           ledCount,
+                    layoutBuffer:       liveLayoutBufferBox?.buffer,
                     processingSettings: liveSettings,
                     brightness:         liveBrightness,
                     controller:         udpController,
@@ -155,6 +182,8 @@ public final class AmbientPipeline: ObservableObject {
         currentFPS   = 0
         latencyMs    = 0
         gpuMs        = 0
+        _currentLedCount = 0
+        _currentLayoutBuffer = nil
 
         HaloLogger.app.info("AmbientPipeline: stopped.")
     }
@@ -170,23 +199,59 @@ public final class AmbientPipeline: ObservableObject {
             ambientStrength: settings.ambientStrength
         )
         pSettings.samplingDepth = settings.samplingDepth
-        pSettings.blackBarDetection = true
+        pSettings.blackBarDetection = settings.blackBarDetection
+        pSettings.cropTop = settings.cropTop
+        pSettings.cropBottom = settings.cropBottom
+        pSettings.cropLeft = settings.cropLeft
+        pSettings.cropRight = settings.cropRight
         pSettings.gamma = settings.gamma
+        pSettings.colorOrder = settings.colorOrder
+        pSettings.layout = settings.layout
+        
+        let wasTestActive = _currentProcessingSettings.isLayoutTestActive
+        pSettings.isLayoutTestActive = settings.isLayoutTestActive
         _currentProcessingSettings = pSettings
+        
+        if let metal = self.metal, _currentLedCount > 0 {
+            let coordinates = CoordinateMapper().map(
+                layout: settings.layout,
+                totalLeds: _currentLedCount,
+                cropTop: Float(settings.cropTop) / 100.0,
+                cropBottom: Float(settings.cropBottom) / 100.0,
+                cropLeft: Float(settings.cropLeft) / 100.0,
+                cropRight: Float(settings.cropRight) / 100.0
+            )
+            if let newBuffer = metal.makeLayoutBuffer(coordinates: coordinates) {
+                _currentLayoutBuffer = SendableMTLBuffer(buffer: newBuffer)
+            }
+        }
         
         var fluidConfig = FluidEngine.Configuration()
         fluidConfig.baseSmoothing = settings.smoothness
         fluid.update(configuration: fluidConfig)
+        
+        // Kickstart the hardware test if it was just turned on, so keepAliveTask sends it instantly
+        if !wasTestActive && settings.isLayoutTestActive {
+            if self.controller != nil {
+                let testColors = LayoutTestGenerator.generate(layout: settings.layout, totalLeds: settings.layout.totalLEDs)
+                let testFrame = LEDFrame(colors: testColors, timestamp: .now, source: .calibration)
+                self.lastSentFrame = testFrame
+                self.lastFrameTime = .now
+            }
+        }
     }
 
     // MARK: - Private
 
     private var _currentBrightness: Float = 0.8
     private var _currentProcessingSettings = ProcessingSettings()
+    private var _currentLayoutBuffer: SendableMTLBuffer?
+    private var _currentLedCount: Int = 0
 
     nonisolated private func processFrame(
         frame:              CaptureFrame,
-        layout:             LEDZoneLayout,
+        ledCount:           Int,
+        layoutBuffer:       MTLBuffer?,
         processingSettings: ProcessingSettings,
         brightness:         Float,
         controller:         WLEDUDPController,
@@ -199,12 +264,13 @@ public final class AmbientPipeline: ObservableObject {
         // --- GPU: Zone Sampling ---
         let gpuStart = ContinuousClock.now
         let rawColors: [LEDColor]
-        if let metal {
+        if let metal, let layoutBuffer {
             do {
                 rawColors = try metal.process(
-                    pixelBuffer: frame.pixelBuffer,
-                    settings:    processingSettings,
-                    layout:      layout
+                    pixelBuffer:  frame.pixelBuffer,
+                    settings:     processingSettings,
+                    ledCount:     ledCount,
+                    layoutBuffer: layoutBuffer
                 )
             } catch {
                 HaloLogger.metal.warning("Metal processing failed: \(error) — skipping frame")
@@ -212,7 +278,7 @@ public final class AmbientPipeline: ObservableObject {
             }
         } else {
             // Fallback: solid color if Metal is unavailable.
-            rawColors = Array(repeating: LEDColor(red: 0.1, green: 0.1, blue: 0.3), count: layout.totalCount)
+            rawColors = Array(repeating: LEDColor(red: 0.1, green: 0.1, blue: 0.3), count: ledCount)
         }
 
         let gpuElapsed = gpuStart.duration(to: .now)
@@ -229,9 +295,16 @@ public final class AmbientPipeline: ObservableObject {
 
         // --- Network: Send to controller ---
         do {
-            try await controller.send(frame: smoothedFrame)
+            try await controller.send(frame: smoothedFrame, colorOrder: processingSettings.colorOrder)
         } catch {
             HaloLogger.network.warning("Failed to send frame: \(error)")
+        }
+        
+        // --- UI: Update Preview Image (throtled to ~10fps) ---
+        var newPreview: CGImage? = nil
+        let currentCount = await MainActor.run { self._frameCount }
+        if currentCount % 6 == 0 {
+            VTCreateCGImageFromCVPixelBuffer(frame.pixelBuffer, options: nil, imageOut: &newPreview)
         }
 
         let totalElapsed = frameStart.duration(to: .now)
@@ -244,6 +317,10 @@ public final class AmbientPipeline: ObservableObject {
             self.gpuMs      = gpuMilliseconds
             self.latencyMs  = totalMs
             self.diagnostics.record(fps: frame.fps, captureLatencyMs: totalMs, gpuMs: gpuMilliseconds, networkMs: 0)
+            
+            if let newPreview {
+                self.previewImage = newPreview
+            }
             
             self.lastSentFrame = smoothedFrame
             self.lastFrameTime = .now

@@ -29,6 +29,7 @@ struct ContentView: View {
         case .calibration: CalibrationView()
         case .diagnostics: DiagnosticsView()
         case .settings:    SettingsView()
+        case .layout:      LayoutView()
         case .profiles:    ProfilesView()
         }
     }
@@ -41,6 +42,7 @@ enum Tab: String, CaseIterable, Identifiable {
     case effects     = "Effects"
     case calibration = "Calibration"
     case diagnostics = "Diagnostics"
+    case layout      = "Layout"
     case profiles    = "Profiles"
     case settings    = "Settings"
 
@@ -52,6 +54,7 @@ enum Tab: String, CaseIterable, Identifiable {
         case .effects:     return "wand.and.stars"
         case .calibration: return "slider.horizontal.3"
         case .diagnostics: return "chart.xyaxis.line"
+        case .layout:      return "rectangle.dashed"
         case .profiles:    return "person.2.square.stack.fill"
         case .settings:    return "gearshape.fill"
         }

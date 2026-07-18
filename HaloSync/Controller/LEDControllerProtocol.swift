@@ -43,7 +43,7 @@ public protocol LEDControllerProtocol: AnyObject, Sendable {
     func disconnect() async
 
     /// Sends a complete LED frame to the controller.
-    func send(frame: LEDFrame) async throws
+    func send(frame: LEDFrame, colorOrder: ColorOrder) async throws
 
     /// Sends a ping and returns the round-trip time.
     func ping() async throws -> Duration

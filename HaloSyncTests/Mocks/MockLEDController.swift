@@ -38,7 +38,7 @@ final class MockLEDController: LEDControllerProtocol, @unchecked Sendable {
         disconnectCallCount += 1
     }
 
-    func send(frame: LEDFrame) async throws {
+    func send(frame: LEDFrame, colorOrder: ColorOrder) async throws {
         if shouldThrowOnSend {
             throw LEDControllerError.notConnected
         }
