@@ -27,9 +27,11 @@ jobs:
         arch -arm64 brew install xcodegen
         xcodegen generate
         
+    - name: Select Xcode 15.4
+      run: sudo xcode-select -s /Applications/Xcode_15.4.app
+      
     - name: Build project for CodeQL
       run: |
-        for i in 1 2 3 4 5; do xcodebuild -downloadComponent MetalToolchain && break || sleep 5; done
         xcodebuild clean build \
           -project HaloSync.xcodeproj \
           -scheme HaloSync \
@@ -52,9 +54,11 @@ jobs:
         arch -arm64 brew install xcodegen
         xcodegen generate
       
+    - name: Select Xcode 15.4
+      run: sudo xcode-select -s /Applications/Xcode_15.4.app
+      
     - name: Run Tests
       run: |
-        for i in 1 2 3 4 5; do xcodebuild -downloadComponent MetalToolchain && break || sleep 5; done
         xcodebuild test \
           -project HaloSync.xcodeproj \
           -scheme HaloSync \
@@ -77,9 +81,11 @@ jobs:
     - name: Generate Xcode Project
       run: xcodegen generate
       
+    - name: Select Xcode 15.4
+      run: sudo xcode-select -s /Applications/Xcode_15.4.app
+      
     - name: Build Release App
       run: |
-        for i in 1 2 3 4 5; do xcodebuild -downloadComponent MetalToolchain && break || sleep 5; done
         xcodebuild clean build \
           -project HaloSync.xcodeproj \
           -scheme HaloSync \
