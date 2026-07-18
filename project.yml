@@ -4,7 +4,7 @@ options:
   deploymentTarget:
     macOS: "14.0"
   defaultConfig: Debug
-  xcodeVersion: "26.6"
+  xcodeVersion: "15.2"
   generateEmptyDirectories: true
   usesTabs: false
   indentWidth: 4
@@ -18,7 +18,7 @@ configs:
 
 settings:
   base:
-    SWIFT_VERSION: "6.0"
+    SWIFT_VERSION: "5.9"
     ENABLE_STRICT_CONCURRENCY_CHECKING: complete
     SWIFT_STRICT_CONCURRENCY: complete
     CLANG_ENABLE_MODULES: YES
@@ -53,7 +53,7 @@ targets:
       path: HaloSync/Resources/HaloSync.entitlements
     settings:
       PRODUCT_NAME: HaloSync
-      SWIFT_VERSION: "6.0"
+      SWIFT_VERSION: "5.9"
 
     scheme:
       testTargets:
@@ -67,7 +67,7 @@ targets:
     dependencies:
       - target: HaloSync
     settings:
-      SWIFT_VERSION: "6.0"
+      SWIFT_VERSION: "5.9"
       PRODUCT_BUNDLE_IDENTIFIER: com.halosync.tests
 
 schemes:

@@ -10,7 +10,7 @@ on:
 jobs:
   security-scan:
     name: CodeQL Security Scan
-    runs-on: macos-latest
+    runs-on: macos-13
     permissions:
       security-events: write
     steps:
@@ -27,23 +27,13 @@ jobs:
         arch -arm64 brew install xcodegen
         xcodegen generate
         
-    - name: Select Xcode 26.6
+    - name: Select Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '26.6.0'
+        xcode-version: '15.2'
       
     - name: Build project for CodeQL
       run: |
-        for i in {1..5}; do
-          if xcodebuild -downloadComponent MetalToolchain; then
-            success=true
-            break
-          else
-            sleep 5
-          fi
-        done
-        if [ "$success" != true ]; then exit 1; fi
-        
         xcodebuild clean build \
           -project HaloSync.xcodeproj \
           -scheme HaloSync \
@@ -56,7 +46,7 @@ jobs:
 
   test:
     name: Run Unit Tests
-    runs-on: macos-latest
+    runs-on: macos-13
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -66,23 +56,13 @@ jobs:
         arch -arm64 brew install xcodegen
         xcodegen generate
       
-    - name: Select Xcode 26.6
+    - name: Select Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '26.6.0'
+        xcode-version: '15.2'
       
     - name: Run Tests
       run: |
-        for i in {1..5}; do
-          if xcodebuild -downloadComponent MetalToolchain; then
-            success=true
-            break
-          else
-            sleep 5
-          fi
-        done
-        if [ "$success" != true ]; then exit 1; fi
-        
         xcodebuild test \
           -project HaloSync.xcodeproj \
           -scheme HaloSync \
@@ -92,7 +72,7 @@ jobs:
 
   build-dmg:
     name: Build & Package DMG
-    runs-on: macos-latest
+    runs-on: macos-13
     needs: [test, security-scan]
     steps:
     - name: Checkout repository
@@ -105,23 +85,13 @@ jobs:
     - name: Generate Xcode Project
       run: xcodegen generate
       
-    - name: Select Xcode 26.6
+    - name: Select Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: '26.6.0'
+        xcode-version: '15.2'
       
     - name: Build Release App
       run: |
-        for i in {1..5}; do
-          if xcodebuild -downloadComponent MetalToolchain; then
-            success=true
-            break
-          else
-            sleep 5
-          fi
-        done
-        if [ "$success" != true ]; then exit 1; fi
-        
         xcodebuild clean build \
           -project HaloSync.xcodeproj \
           -scheme HaloSync \
