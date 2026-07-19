@@ -13,6 +13,24 @@ struct CalibrationView: View {
 
     @State private var selectedTest: CalibrationTest? = nil
     @State private var isRunning = false
+    
+    private var wallColorBinding: Binding<Color> {
+        Binding(
+            get: {
+                let w = settings.value.wallColor
+                return Color(red: Double(w.x), green: Double(w.y), blue: Double(w.z))
+            },
+            set: { newColor in
+                if let nsColor = NSColor(newColor).usingColorSpace(.deviceRGB) {
+                    settings.value.wallColor = SIMD3<Float>(
+                        Float(nsColor.redComponent),
+                        Float(nsColor.greenComponent),
+                        Float(nsColor.blueComponent)
+                    )
+                }
+            }
+        )
+    }
 
     var body: some View {
         ScrollView {
@@ -21,6 +39,7 @@ struct CalibrationView: View {
                 if monitor.discoveredDevice == nil {
                     noControllerBanner
                 } else {
+                    wallColorMatchSection
                     testGrid
                     brightnessTests
                     advancedSection
@@ -59,6 +78,31 @@ struct CalibrationView: View {
                     Text("Connect your Pixylights controller to run calibration tests")
                         .font(Typography.caption)
                         .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+    
+    private var wallColorMatchSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.md) {
+            Text("Wall Color Match".uppercased())
+                .font(Typography.micro)
+                .foregroundStyle(.secondary)
+                .tracking(1.2)
+            
+            GlassCard {
+                HStack {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        Text("Physical Wall Color")
+                            .font(Typography.bodyMedium)
+                        Text("Pick the color of the wall behind your monitor. The system will subtract this color from the LEDs so reflections appear accurate.")
+                            .font(Typography.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: Spacing.xl)
+                    ColorPicker("", selection: wallColorBinding, supportsOpacity: false)
+                        .labelsHidden()
                 }
             }
         }
@@ -134,7 +178,17 @@ struct CalibrationView: View {
         do {
             let port: UInt16 = device.activeProtocol == .udpRaw ? 21324 : 4048
             try await controller.connect(to: device.address, port: port)
-            let colors = Array(repeating: test.ledColor, count: device.ledCount)
+            
+            // Subtractive Wall Color Math
+            let pSettings = ProcessingSettings.from(mode: .custom, brightness: 1.0, ambientStrength: 1.0, wallColor: settings.value.wallColor)
+            let comp = pSettings.wallCompensation
+            let compensatedColor = LEDColor(
+                red: test.ledColor.red * comp.x,
+                green: test.ledColor.green * comp.y,
+                blue: test.ledColor.blue * comp.z
+            )
+            
+            let colors = Array(repeating: compensatedColor, count: device.ledCount)
             let frame = LEDFrame(colors: colors, timestamp: .now, source: .calibration)
             try await controller.send(frame: frame, colorOrder: settings.value.colorOrder)
             try await Task.sleep(for: .milliseconds(100))
