@@ -109,16 +109,27 @@ public final class AmbientPipeline: ObservableObject {
             effects.onFrame = { [weak self, weak udpController] frame in
                 guard let self, let ctrl = udpController else { return }
                 let order = self._currentProcessingSettings.colorOrder
+                let comp = self._currentProcessingSettings.wallCompensation
+                
+                // Apply Subtractive Wall Color Match to Effects
+                let compColors = frame.colors.map { c in
+                    LEDColor(
+                        red: c.red * comp.x,
+                        green: c.green * comp.y,
+                        blue: c.blue * comp.z
+                    )
+                }
+                let outFrame = LEDFrame(colors: compColors, timestamp: frame.timestamp, source: frame.source)
                 
                 // Diagnostics
                 Task { @MainActor in
-                    self.lastSentFrame = frame
+                    self.lastSentFrame = outFrame
                     self.lastFrameTime = .now
                     self.diagnostics.record(fps: 60, captureLatencyMs: 0, gpuMs: 0, networkMs: 0)
                 }
                 
                 Task {
-                    try? await ctrl.send(frame: frame, colorOrder: order)
+                    try? await ctrl.send(frame: outFrame, colorOrder: order)
                 }
             }
             if let effectID = settings.activeEffectID {
@@ -169,7 +180,15 @@ public final class AmbientPipeline: ObservableObject {
                 // --- HARDWARE TEST BYPASS ---
                 if liveSettings.isLayoutTestActive {
                     let testColors = LayoutTestGenerator.generate(layout: liveSettings.layout, totalLeds: ledCount)
-                    let outFrame = LEDFrame(colors: testColors, timestamp: .now, source: .calibration)
+                    let comp = liveSettings.wallCompensation
+                    let compColors = testColors.map { c in
+                        LEDColor(
+                            red: c.red * comp.x,
+                            green: c.green * comp.y,
+                            blue: c.blue * comp.z
+                        )
+                    }
+                    let outFrame = LEDFrame(colors: compColors, timestamp: .now, source: .calibration)
                     try? await udpController.send(frame: outFrame, colorOrder: liveSettings.colorOrder)
                     
                     await MainActor.run {
@@ -233,7 +252,8 @@ public final class AmbientPipeline: ObservableObject {
         var pSettings = ProcessingSettings.from(
             mode: settings.activeMode,
             brightness: settings.brightness,
-            ambientStrength: settings.ambientStrength
+            ambientStrength: settings.ambientStrength,
+            wallColor: settings.wallColor
         )
         pSettings.samplingDepth = settings.samplingDepth
         pSettings.blackBarDetection = settings.blackBarDetection
@@ -271,7 +291,15 @@ public final class AmbientPipeline: ObservableObject {
         if !wasTestActive && settings.isLayoutTestActive {
             if self.controller != nil {
                 let testColors = LayoutTestGenerator.generate(layout: settings.layout, totalLeds: settings.layout.totalLEDs)
-                let testFrame = LEDFrame(colors: testColors, timestamp: .now, source: .calibration)
+                let comp = pSettings.wallCompensation
+                let compColors = testColors.map { c in
+                    LEDColor(
+                        red: c.red * comp.x,
+                        green: c.green * comp.y,
+                        blue: c.blue * comp.z
+                    )
+                }
+                let testFrame = LEDFrame(colors: compColors, timestamp: .now, source: .calibration)
                 self.lastSentFrame = testFrame
                 self.lastFrameTime = .now
             }

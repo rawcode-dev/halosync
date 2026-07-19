@@ -12,6 +12,27 @@ struct EffectsView: View {
 
     @State private var time: Double = 0
     private let timer = Timer.publish(every: 1.0/60.0, on: .main, in: .common).autoconnect()
+    
+    private var solidColorBinding: Binding<Color> {
+        Binding(
+            get: {
+                let c = settings.value.solidColor
+                return Color(red: Double(c.x), green: Double(c.y), blue: Double(c.z))
+            },
+            set: { newColor in
+                if let nsColor = NSColor(newColor).usingColorSpace(.deviceRGB) {
+                    settings.value.solidColor = SIMD3<Float>(
+                        Float(nsColor.redComponent),
+                        Float(nsColor.greenComponent),
+                        Float(nsColor.blueComponent)
+                    )
+                    if settings.value.activeMode == .effects && settings.value.activeEffectID == "com.halosync.effect.static" {
+                        Task { await env.applyHardwareEffect() }
+                    }
+                }
+            }
+        )
+    }
 
     var body: some View {
         ScrollView {
@@ -41,6 +62,9 @@ struct EffectsView: View {
                             .strokeBorder(Color.yellow.opacity(0.3), lineWidth: 1)
                     )
                 }
+                if settings.value.activeMode == .effects && settings.value.activeEffectID == "com.halosync.effect.static" {
+                    effectSettingsSection
+                }
 
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.md), count: 3),
@@ -56,8 +80,9 @@ struct EffectsView: View {
                                 settings.value.activeMode = .effects
                                 settings.value.activeEffectID = effect.id
                             }
-                            if !pipeline.isRunning {
-                                Task { await env.startPipeline() }
+                            Task {
+                                await env.stopPipeline()
+                                await env.applyHardwareEffect()
                             }
                         }
                     }
@@ -67,6 +92,27 @@ struct EffectsView: View {
         }
         .navigationTitle("Effects")
         .onReceive(timer) { _ in time += 1.0/60.0 }
+    }
+    
+    private var effectSettingsSection: some View {
+        HStack(spacing: Spacing.md) {
+            ColorPicker("", selection: solidColorBinding, supportsOpacity: false)
+                .labelsHidden()
+                .scaleEffect(1.2)
+                .padding(.leading, Spacing.xs)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Effect Color")
+                    .font(Typography.bodyMedium)
+                Text("Permanent hardware fallback color")
+                    .font(Typography.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(Spacing.md)
+        .background(Color.haloCard)
+        .clipShape(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous))
     }
 }
 

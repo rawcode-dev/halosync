@@ -10,6 +10,10 @@ public struct RainbowEffect: AmbientEffectProtocol {
     public let name = "Rainbow"
     public let symbolName = "rainbow"
 
+    public var wledHardwareEffect: WLEDHardwareEffect {
+        WLEDHardwareEffect(fxID: 9, speed: 128) // Rainbow Cycle
+    }
+
     /// Speed multiplier (1.0 = default, 2.0 = twice as fast).
     public var speed: Float = 1.0
 

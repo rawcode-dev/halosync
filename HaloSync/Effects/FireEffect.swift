@@ -9,6 +9,10 @@ public struct FireEffect: AmbientEffectProtocol {
     public let name = "Fire"
     public let symbolName = "flame.fill"
 
+    public var wledHardwareEffect: WLEDHardwareEffect {
+        WLEDHardwareEffect(fxID: 117, speed: 180, paletteID: 35) // Fire 2012
+    }
+
     public var speed: Float = 1.5
     public var intensity: Float = 0.85
 

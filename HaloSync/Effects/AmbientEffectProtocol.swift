@@ -4,6 +4,23 @@
 
 import Foundation
 
+/// Represents the hardware configuration for an effect on a WLED controller.
+public struct WLEDHardwareEffect: Sendable {
+    public let fxID: Int
+    public let speed: Int?
+    public let intensity: Int?
+    public let paletteID: Int?
+    public let usesSolidColor: Bool
+    
+    public init(fxID: Int, speed: Int? = nil, intensity: Int? = nil, paletteID: Int? = nil, usesSolidColor: Bool = false) {
+        self.fxID = fxID
+        self.speed = speed
+        self.intensity = intensity
+        self.paletteID = paletteID
+        self.usesSolidColor = usesSolidColor
+    }
+}
+
 /// A self-contained ambient lighting effect.
 /// Effects are called once per frame tick and must be deterministic given the same `time`.
 public protocol AmbientEffectProtocol: Sendable {
@@ -15,6 +32,9 @@ public protocol AmbientEffectProtocol: Sendable {
 
     /// SF Symbol icon.
     var symbolName: String { get }
+    
+    /// The corresponding hardware effect configuration for WLED.
+    var wledHardwareEffect: WLEDHardwareEffect { get }
 
     /// Generates the next LED frame for the given parameters.
     /// - Parameters:

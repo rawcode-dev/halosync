@@ -8,7 +8,11 @@ import Foundation
 public struct AuroraEffect: AmbientEffectProtocol {
     public let id = "com.halosync.effect.aurora"
     public let name = "Aurora"
-    public let symbolName = "cloud.fill"
+    public let symbolName = "sparkles"
+    
+    public var wledHardwareEffect: WLEDHardwareEffect {
+        WLEDHardwareEffect(fxID: 79, speed: 64) // Twinklefox
+    }
 
     public var speed: Float = 0.3
 

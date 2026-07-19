@@ -118,6 +118,11 @@ public final class AppEnvironment: ObservableObject {
     /// Starts the ambient lighting pipeline using the currently discovered display and controller.
     public func startPipeline() async {
         guard !pipeline.isRunning else { return }
+        
+        if settings.value.activeMode == .effects {
+            await applyHardwareEffect()
+            return
+        }
 
         // Pick the selected display, or fall back to main.
         let displays = displayDiscovery.currentDisplays()
@@ -159,6 +164,8 @@ public final class AppEnvironment: ObservableObject {
         if pipeline.isRunning {
             await stopPipeline()
             await startPipeline()
+        } else if settings.value.activeMode == .effects {
+            await applyHardwareEffect()
         }
     }
 
@@ -182,6 +189,41 @@ public final class AppEnvironment: ObservableObject {
             }
         } catch {
             HaloLogger.network.warning("Failed to toggle power: \(error)")
+        }
+    }
+    
+    /// Sends a JSON API command to apply a permanent hardware effect to the controller, 
+    /// taking into account the user's Wall Color Match compensation if applicable.
+    public func applyHardwareEffect() async {
+        guard let device = controllerMonitor.discoveredDevice else { return }
+        
+        let s = settings.value
+        guard let effect = EffectsEngine.allEffects.first(where: { $0.id == s.activeEffectID }) else { return }
+        let hwConfig = effect.wledHardwareEffect
+        var targetColor: SIMD3<Float>? = nil
+        
+        if hwConfig.usesSolidColor {
+            let pSettings = ProcessingSettings.from(
+                mode: s.activeMode,
+                brightness: s.brightness,
+                ambientStrength: s.ambientStrength,
+                wallColor: s.wallColor
+            )
+            
+            let comp = pSettings.wallCompensation
+            targetColor = SIMD3<Float>(
+                s.solidColor.x * comp.x,
+                s.solidColor.y * comp.y,
+                s.solidColor.z * comp.z
+            )
+        }
+        
+        guard let req = WLEDJSONProtocol.hardwareEffectRequest(host: device.address, config: hwConfig, color: targetColor) else { return }
+        do {
+            let (_, _) = try await URLSession.shared.data(for: req)
+            HaloLogger.app.info("Applied hardware effect: \(hwConfig.fxID)")
+        } catch {
+            HaloLogger.network.warning("Failed to apply hardware effect: \(error)")
         }
     }
 

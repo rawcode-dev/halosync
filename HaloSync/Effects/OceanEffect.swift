@@ -9,6 +9,10 @@ public struct OceanEffect: AmbientEffectProtocol {
     public let name = "Ocean"
     public let symbolName = "water.waves"
 
+    public var wledHardwareEffect: WLEDHardwareEffect {
+        WLEDHardwareEffect(fxID: 104) // Pacifica
+    }
+
     public var speed: Float = 0.8
 
     public func next(ledCount: Int, time: Double, brightness: Float) -> LEDFrame {
