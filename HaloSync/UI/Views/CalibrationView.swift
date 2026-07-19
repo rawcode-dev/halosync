@@ -13,6 +13,7 @@ struct CalibrationView: View {
 
     @State private var selectedTest: CalibrationTest? = nil
     @State private var isRunning = false
+    @State private var testTask: Task<Void, Never>? = nil
     
     private var wallColorBinding: Binding<Color> {
         Binding(
@@ -52,6 +53,9 @@ struct CalibrationView: View {
             if env.pipeline.isRunning {
                 Task { await env.stopPipeline() }
             }
+        }
+        .onDisappear {
+            testTask?.cancel()
         }
     }
 
@@ -119,7 +123,7 @@ struct CalibrationView: View {
                 ForEach(CalibrationTest.colorTests) { test in
                     CalibrationTestButton(test: test, isActive: selectedTest?.id == test.id, isRunning: isRunning) {
                         selectedTest = test
-                        Task { await runTest(test) }
+                        runTest(test)
                     }
                 }
             }
@@ -137,7 +141,7 @@ struct CalibrationView: View {
                 ForEach(CalibrationTest.brightnessTests) { test in
                     CalibrationTestButton(test: test, isActive: selectedTest?.id == test.id, isRunning: isRunning) {
                         selectedTest = test
-                        Task { await runTest(test) }
+                        runTest(test)
                     }
                 }
             }
@@ -165,42 +169,55 @@ struct CalibrationView: View {
 
     // MARK: - Logic
 
-    private func runTest(_ test: CalibrationTest) async {
-        isRunning = true
-        HaloLogger.calibration.info("Running test: \(test.name)")
-        
-        guard let device = monitor.discoveredDevice else {
-            isRunning = false
-            return
-        }
-        
-        let controller = WLEDUDPController(deviceInfo: device)
-        do {
-            let port: UInt16 = device.activeProtocol == .udpRaw ? 21324 : 4048
-            try await controller.connect(to: device.address, port: port)
+    private func runTest(_ test: CalibrationTest) {
+        testTask?.cancel()
+        testTask = Task {
+            isRunning = true
+            HaloLogger.calibration.info("Running test: \(test.name)")
             
-            // Subtractive Wall Color Math
-            let pSettings = ProcessingSettings.from(mode: .custom, brightness: 1.0, ambientStrength: 1.0, wallColor: settings.value.wallColor)
-            let comp = pSettings.wallCompensation
-            let compensatedColor = LEDColor(
-                red: test.ledColor.red * comp.x,
-                green: test.ledColor.green * comp.y,
-                blue: test.ledColor.blue * comp.z
-            )
+            guard let device = monitor.discoveredDevice else {
+                isRunning = false
+                return
+            }
             
-            let colors = Array(repeating: compensatedColor, count: device.ledCount)
-            let frame = LEDFrame(colors: colors, timestamp: .now, source: .calibration)
-            try await controller.send(frame: frame, colorOrder: settings.value.colorOrder)
-            try await Task.sleep(for: .milliseconds(100))
-            await controller.disconnect()
-        } catch {
-            HaloLogger.calibration.error("Failed to run test: \(error)")
+            let controller = WLEDUDPController(deviceInfo: device)
+            do {
+                let port: UInt16 = device.activeProtocol == .udpRaw ? 21324 : 4048
+                try await controller.connect(to: device.address, port: port)
+                
+                while !Task.isCancelled {
+                    // Subtractive Wall Color Math
+                    let pSettings = ProcessingSettings.from(mode: .custom, brightness: 1.0, ambientStrength: 1.0, wallColor: settings.value.wallColor)
+                    let comp = pSettings.wallCompensation
+                    let compensatedColor = LEDColor(
+                        red: test.ledColor.red * comp.x,
+                        green: test.ledColor.green * comp.y,
+                        blue: test.ledColor.blue * comp.z
+                    )
+                    
+                    let colors = Array(repeating: compensatedColor, count: device.ledCount)
+                    let frame = LEDFrame(colors: colors, timestamp: .now, source: .calibration)
+                    try await controller.send(frame: frame, colorOrder: settings.value.colorOrder)
+                    
+                    // WLED timeout is usually 2.5s, sending every 1 second keeps it alive.
+                    try await Task.sleep(for: .seconds(1))
+                }
+                
+                await controller.disconnect()
+            } catch {
+                if !Task.isCancelled {
+                    HaloLogger.calibration.error("Failed to run test: \(error)")
+                }
+            }
+            
+            if !Task.isCancelled {
+                isRunning = false
+            }
         }
-        
-        isRunning = false
     }
 
     private func runWalk() async {
+        testTask?.cancel()
         isRunning = true
         HaloLogger.calibration.info("Running LED walk")
         
@@ -236,6 +253,7 @@ struct CalibrationView: View {
     }
 
     private func turnOff() async {
+        testTask?.cancel()
         selectedTest = nil
         HaloLogger.calibration.info("Turning off all LEDs")
         
