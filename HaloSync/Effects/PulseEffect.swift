@@ -7,11 +7,15 @@ import Foundation
 public struct PulseEffect: AmbientEffectProtocol {
     public let id = "com.halosync.effect.pulse"
     public let name = "Pulse"
-    public let symbolName = "dot.radiowaves.left.and.right"
+    public let symbolName = "waveform.path.ecg"
 
     public var color: LEDColor = LEDColor(red: 0.48, green: 0.38, blue: 1.0) // Brand purple
     public var speed: Float = 1.0
     public var trailLength: Float = 0.2  // As fraction of strip length.
+
+    public var wledHardwareEffect: WLEDHardwareEffect {
+        WLEDHardwareEffect(fxID: 2, speed: 190, usesSolidColor: true) // Fast Breathe
+    }
 
     public func next(ledCount: Int, time: Double, brightness: Float) -> LEDFrame {
         guard ledCount > 0 else { return .black(count: 0) }

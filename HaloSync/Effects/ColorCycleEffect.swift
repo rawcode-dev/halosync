@@ -7,7 +7,11 @@ import Foundation
 public struct ColorCycleEffect: AmbientEffectProtocol {
     public let id = "com.halosync.effect.colorcycle"
     public let name = "Color Cycle"
-    public let symbolName = "circle.hexagongrid.fill"
+    public let symbolName = "arrow.3.path.circle"
+    
+    public var wledHardwareEffect: WLEDHardwareEffect {
+        WLEDHardwareEffect(fxID: 65, speed: 128) // Colorloop
+    }
 
     /// Cycle speed (full cycle duration in seconds at 1.0).
     public var speed: Float = 0.1

@@ -7,10 +7,14 @@ import Foundation
 public struct BreathingEffect: AmbientEffectProtocol {
     public let id = "com.halosync.effect.breathing"
     public let name = "Breathing"
-    public let symbolName = "waveform.path"
+    public let symbolName = "wind"
+    
+    public var wledHardwareEffect: WLEDHardwareEffect {
+        WLEDHardwareEffect(fxID: 2, speed: 64, usesSolidColor: true)
+    }
 
     /// The color to breathe. Default: warm white.
-    public var color: LEDColor = LEDColor(red: 1.0, green: 0.92, blue: 0.75)
+    public var color: LEDColor = LEDColor(red: 0.1, green: 0.8, blue: 0.9)
 
     /// Breaths per minute (8 = default relaxed rate).
     public var bpm: Float = 8

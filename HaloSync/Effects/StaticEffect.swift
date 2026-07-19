@@ -6,8 +6,12 @@ import Foundation
 /// Static effect — holds a solid color across all LEDs.
 public struct StaticEffect: AmbientEffectProtocol {
     public let id = "com.halosync.effect.static"
-    public let name = "Static"
-    public let symbolName = "circle.fill"
+    public let name = "Solid Color"
+    public let symbolName = "paintpalette.fill"
+    
+    public var wledHardwareEffect: WLEDHardwareEffect {
+        WLEDHardwareEffect(fxID: 0, usesSolidColor: true)
+    }
 
     public var color: LEDColor = .white
 

@@ -27,7 +27,7 @@ struct EffectsView: View {
                         Float(nsColor.blueComponent)
                     )
                     if settings.value.activeMode == .effects && settings.value.activeEffectID == "com.halosync.effect.static" {
-                        Task { await env.applySolidColorToHardware() }
+                        Task { await env.applyHardwareEffect() }
                     }
                 }
             }
@@ -80,13 +80,9 @@ struct EffectsView: View {
                                 settings.value.activeMode = .effects
                                 settings.value.activeEffectID = effect.id
                             }
-                            if effect.id == "com.halosync.effect.static" {
-                                Task {
-                                    await env.stopPipeline()
-                                    await env.applySolidColorToHardware()
-                                }
-                            } else if !pipeline.isRunning {
-                                Task { await env.startPipeline() }
+                            Task {
+                                await env.stopPipeline()
+                                await env.applyHardwareEffect()
                             }
                         }
                     }

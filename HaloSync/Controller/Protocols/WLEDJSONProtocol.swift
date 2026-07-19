@@ -60,24 +60,42 @@ public struct WLEDJSONProtocol: LEDOutputProtocol, Sendable {
     
     /// Builds a POST request to set the WLED device to a permanent solid color effect.
     public static func solidColorRequest(host: String, color: SIMD3<Float>) -> URLRequest? {
+        // Just forward to hardwareEffectRequest
+        let config = WLEDHardwareEffect(fxID: 0, usesSolidColor: true)
+        return hardwareEffectRequest(host: host, config: config, color: color)
+    }
+    
+    /// Builds a POST request to set the WLED device to a specific hardware effect.
+    public static func hardwareEffectRequest(host: String, config: WLEDHardwareEffect, color: SIMD3<Float>? = nil) -> URLRequest? {
         guard let url = URL(string: "http://\(host)/json/state") else { return nil }
         var req = URLRequest(url: url, timeoutInterval: 3)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        let r = Int((color.x * 255).rounded())
-        let g = Int((color.y * 255).rounded())
-        let b = Int((color.z * 255).rounded())
+        var segPayload: [String: Any] = ["fx": config.fxID]
         
-        // fx: 0 is the Solid color effect in WLED.
+        if let speed = config.speed {
+            segPayload["sx"] = speed
+        }
+        
+        if let intensity = config.intensity {
+            segPayload["ix"] = intensity
+        }
+        
+        if let paletteID = config.paletteID {
+            segPayload["pal"] = paletteID
+        }
+        
+        if config.usesSolidColor, let c = color {
+            let r = Int((c.x * 255).rounded())
+            let g = Int((c.y * 255).rounded())
+            let b = Int((c.z * 255).rounded())
+            segPayload["col"] = [[r, g, b]]
+        }
+        
         let payload: [String: Any] = [
             "on": true,
-            "seg": [
-                [
-                    "fx": 0,
-                    "col": [[r, g, b]]
-                ]
-            ]
+            "seg": [segPayload]
         ]
         
         req.httpBody = try? JSONSerialization.data(withJSONObject: payload)
