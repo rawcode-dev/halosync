@@ -42,7 +42,7 @@ struct HaloSyncApp: App {
                 .environmentObject(env.settings)
                 .environmentObject(env.controllerMonitor)
         }
-        .menuBarExtraStyle(.menu)
+        .menuBarExtraStyle(.window)
     }
 }
 

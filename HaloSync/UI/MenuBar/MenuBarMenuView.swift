@@ -8,8 +8,6 @@ struct MenuBarMenuView: View {
     @EnvironmentObject private var settings: HaloSyncSettingsStore
     @EnvironmentObject private var monitor: ControllerMonitor
 
-    @State private var isRunning = false
-
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
@@ -18,76 +16,116 @@ struct MenuBarMenuView: View {
                     .foregroundStyle(
                         LinearGradient(colors: [.haloPrimary, .haloAccent], startPoint: .topLeading, endPoint: .bottomTrailing)
                     )
+                    .font(.title2)
                 Text("HaloSync")
                     .font(.headline)
                 Spacer()
                 StatusBadge(status: monitor.discoveredDevice?.connectionStatus ?? .disconnected, showLabel: false)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
 
             Divider()
 
             // Quick Controls
-            VStack(spacing: 4) {
+            VStack(spacing: 8) {
                 menuSlider("Brightness", value: $settings.value.brightness, icon: "sun.max.fill")
+                    .disabled(settings.value.activeMode != .custom)
+                    .opacity(settings.value.activeMode != .custom ? 0.5 : 1.0)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
 
             Divider()
 
             // Mode
-            Text("Mode".uppercased())
+            Text("MODE")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
 
-            ForEach([AmbientMode.ambient, .movie, .gaming, .desktop, .night]) { mode in
-                Button {
-                    settings.value.activeMode = mode
-                } label: {
-                    HStack {
-                        Image(systemName: mode.symbolName)
-                            .frame(width: 16)
-                        Text(mode.displayName)
-                        Spacer()
-                        if settings.value.activeMode == mode {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(.haloPrimary)
+            VStack(spacing: 2) {
+                ForEach([AmbientMode.ambient, .movie, .gaming, .desktop, .night]) { mode in
+                    Button {
+                        settings.value.activeMode = mode
+                        if mode != .custom {
+                            let defaults = mode.defaultParameters
+                            settings.value.brightness = defaults.brightness
+                            settings.value.smoothness = defaults.smoothness
+                            settings.value.ambientStrength = defaults.ambientStrength
                         }
+                    } label: {
+                        HStack {
+                            Image(systemName: mode.symbolName)
+                                .frame(width: 20)
+                            Text(mode.displayName)
+                            Spacer()
+                            if settings.value.activeMode == mode {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.haloPrimary)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 6)
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
                 }
             }
-            .padding(.horizontal, 4)
+            .padding(.bottom, 8)
 
             Divider()
 
             // Actions
-            Button(isRunning ? "Stop Lighting" : "Start Lighting") {
-                isRunning.toggle()
-            }
+            VStack(spacing: 12) {
+                Button {
+                    Task {
+                        if env.pipeline.isRunning {
+                            await env.stopPipeline()
+                        } else {
+                            await env.startPipeline()
+                        }
+                    }
+                } label: {
+                    Text(env.pipeline.isRunning ? "Stop Syncing" : "Start Syncing")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(env.pipeline.isRunning ? .red : .haloPrimary)
 
-            Button("Open HaloSync") {
-                NSApp.activate(ignoringOtherApps: true)
+                HStack(spacing: 8) {
+                    Button {
+                        NSApp.activate(ignoringOtherApps: true)
+                    } label: {
+                        Text("Open App")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    
+                    Button {
+                        NSApp.terminate(nil)
+                    } label: {
+                        Text("Quit")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
             }
-
-            Divider()
-
-            Button("Quit HaloSync") {
-                NSApp.terminate(nil)
-            }
+            .padding(16)
         }
         .frame(width: 260)
+        .background(Material.ultraThinMaterial)
     }
 
     private func menuSlider(_ label: String, value: Binding<Float>, icon: String) -> some View {
         HStack {
             Image(systemName: icon)
-                .font(.system(size: 11))
+                .font(.system(size: 12))
                 .foregroundStyle(.secondary)
-                .frame(width: 16)
+                .frame(width: 20)
             Slider(value: value)
                 .tint(.haloPrimary)
             Text("\(Int(value.wrappedValue * 100))%")
