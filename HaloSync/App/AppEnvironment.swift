@@ -119,7 +119,7 @@ public final class AppEnvironment: ObservableObject {
     public func startPipeline() async {
         guard !pipeline.isRunning else { return }
         
-        if settings.value.activeMode == .effects && settings.value.activeEffectID == "solid" {
+        if settings.value.activeMode == .effects && settings.value.activeEffectID == "com.halosync.effect.static" {
             await applySolidColorToHardware()
             return
         }

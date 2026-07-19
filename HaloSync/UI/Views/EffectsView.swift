@@ -26,7 +26,7 @@ struct EffectsView: View {
                         Float(nsColor.greenComponent),
                         Float(nsColor.blueComponent)
                     )
-                    if settings.value.activeMode == .effects && settings.value.activeEffectID == "solid" {
+                    if settings.value.activeMode == .effects && settings.value.activeEffectID == "com.halosync.effect.static" {
                         Task { await env.applySolidColorToHardware() }
                     }
                 }
@@ -62,8 +62,9 @@ struct EffectsView: View {
                             .strokeBorder(Color.yellow.opacity(0.3), lineWidth: 1)
                     )
                 }
-                
-                solidColorSection
+                if settings.value.activeMode == .effects && settings.value.activeEffectID == "com.halosync.effect.static" {
+                    effectSettingsSection
+                }
 
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.md), count: 3),
@@ -79,7 +80,12 @@ struct EffectsView: View {
                                 settings.value.activeMode = .effects
                                 settings.value.activeEffectID = effect.id
                             }
-                            if !pipeline.isRunning {
+                            if effect.id == "com.halosync.effect.static" {
+                                Task {
+                                    await env.stopPipeline()
+                                    await env.applySolidColorToHardware()
+                                }
+                            } else if !pipeline.isRunning {
                                 Task { await env.startPipeline() }
                             }
                         }
@@ -92,51 +98,25 @@ struct EffectsView: View {
         .onReceive(timer) { _ in time += 1.0/60.0 }
     }
     
-    private var solidColorSection: some View {
-        let isSelected = settings.value.activeMode == .effects && settings.value.activeEffectID == "solid"
-        
-        return Button {
-            withAnimation(Anim.snap) {
-                settings.value.activeMode = .effects
-                settings.value.activeEffectID = "solid"
+    private var effectSettingsSection: some View {
+        HStack(spacing: Spacing.md) {
+            ColorPicker("", selection: solidColorBinding, supportsOpacity: false)
+                .labelsHidden()
+                .scaleEffect(1.2)
+                .padding(.leading, Spacing.xs)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Effect Color")
+                    .font(Typography.bodyMedium)
+                Text("Permanent hardware fallback color")
+                    .font(Typography.caption)
+                    .foregroundStyle(.secondary)
             }
-            Task {
-                await env.stopPipeline()
-                await env.applySolidColorToHardware()
-            }
-        } label: {
-            HStack(spacing: Spacing.md) {
-                ColorPicker("", selection: solidColorBinding, supportsOpacity: false)
-                    .labelsHidden()
-                    .scaleEffect(1.2)
-                    .padding(.leading, Spacing.xs)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Solid Color")
-                        .font(Typography.bodyMedium)
-                        .foregroundStyle(isSelected ? .primary : .secondary)
-                    Text("Permanent hardware fallback color")
-                        .font(Typography.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.haloPrimary)
-                }
-            }
-            .padding(Spacing.md)
-            .background(
-                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
-                    .fill(isSelected ? Color.haloPrimary.opacity(0.12) : Color.haloCard)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
-                            .strokeBorder(isSelected ? Color.haloPrimary.opacity(0.5) : Color.haloBorder, lineWidth: 1.5)
-                    )
-            )
+            Spacer()
         }
-        .buttonStyle(.plain)
+        .padding(Spacing.md)
+        .background(Color.haloCard)
+        .clipShape(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous))
     }
 }
 
