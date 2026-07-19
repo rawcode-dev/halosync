@@ -12,6 +12,27 @@ struct EffectsView: View {
 
     @State private var time: Double = 0
     private let timer = Timer.publish(every: 1.0/60.0, on: .main, in: .common).autoconnect()
+    
+    private var solidColorBinding: Binding<Color> {
+        Binding(
+            get: {
+                let c = settings.value.solidColor
+                return Color(red: Double(c.x), green: Double(c.y), blue: Double(c.z))
+            },
+            set: { newColor in
+                if let nsColor = NSColor(newColor).usingColorSpace(.deviceRGB) {
+                    settings.value.solidColor = SIMD3<Float>(
+                        Float(nsColor.redComponent),
+                        Float(nsColor.greenComponent),
+                        Float(nsColor.blueComponent)
+                    )
+                    if settings.value.activeMode == .effects && settings.value.activeEffectID == "solid" {
+                        Task { await env.applySolidColorToHardware() }
+                    }
+                }
+            }
+        )
+    }
 
     var body: some View {
         ScrollView {
@@ -41,6 +62,8 @@ struct EffectsView: View {
                             .strokeBorder(Color.yellow.opacity(0.3), lineWidth: 1)
                     )
                 }
+                
+                solidColorSection
 
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.md), count: 3),
@@ -67,6 +90,53 @@ struct EffectsView: View {
         }
         .navigationTitle("Effects")
         .onReceive(timer) { _ in time += 1.0/60.0 }
+    }
+    
+    private var solidColorSection: some View {
+        let isSelected = settings.value.activeMode == .effects && settings.value.activeEffectID == "solid"
+        
+        return Button {
+            withAnimation(Anim.snap) {
+                settings.value.activeMode = .effects
+                settings.value.activeEffectID = "solid"
+            }
+            Task {
+                await env.stopPipeline()
+                await env.applySolidColorToHardware()
+            }
+        } label: {
+            HStack(spacing: Spacing.md) {
+                ColorPicker("", selection: solidColorBinding, supportsOpacity: false)
+                    .labelsHidden()
+                    .scaleEffect(1.2)
+                    .padding(.leading, Spacing.xs)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Solid Color")
+                        .font(Typography.bodyMedium)
+                        .foregroundStyle(isSelected ? .primary : .secondary)
+                    Text("Permanent hardware fallback color")
+                        .font(Typography.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.haloPrimary)
+                }
+            }
+            .padding(Spacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
+                    .fill(isSelected ? Color.haloPrimary.opacity(0.12) : Color.haloCard)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Radius.lg, style: .continuous)
+                            .strokeBorder(isSelected ? Color.haloPrimary.opacity(0.5) : Color.haloBorder, lineWidth: 1.5)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 

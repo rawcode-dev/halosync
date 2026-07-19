@@ -16,27 +16,6 @@ struct HomeView: View {
     @State private var showDisplayPicker = false
 
     private var isRunning: Bool { pipeline.isRunning }
-    
-    private var solidColorBinding: Binding<Color> {
-        Binding(
-            get: {
-                let c = settings.value.solidColor
-                return Color(red: Double(c.x), green: Double(c.y), blue: Double(c.z))
-            },
-            set: { newColor in
-                if let nsColor = NSColor(newColor).usingColorSpace(.deviceRGB) {
-                    settings.value.solidColor = SIMD3<Float>(
-                        Float(nsColor.redComponent),
-                        Float(nsColor.greenComponent),
-                        Float(nsColor.blueComponent)
-                    )
-                    if settings.value.activeMode == .solid {
-                        Task { await env.applySolidColorToHardware() }
-                    }
-                }
-            }
-        )
-    }
 
     var body: some View {
         ScrollView {
@@ -241,20 +220,11 @@ struct HomeView: View {
                                         settings.value.ambientStrength = defaults.ambientStrength
                                     }
                                 }
-                                if mode == .solid {
-                                    Task {
-                                        await env.stopPipeline()
-                                        await env.applySolidColorToHardware()
-                                    }
-                                } else if !pipeline.isRunning {
+                                if !pipeline.isRunning {
                                     Task { await env.startPipeline() }
                                 }
                             }
                         }
-                    }
-                    
-                    if settings.value.activeMode == .solid {
-                        solidColorSection
                     }
                 }
 
@@ -288,24 +258,6 @@ struct HomeView: View {
                 .opacity(settings.value.activeMode != .custom ? 0.5 : 1.0)
             }
         }
-    }
-    
-    private var solidColorSection: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: Spacing.xs) {
-                Text("Hardware Color")
-                    .font(Typography.bodyMedium)
-                Text("Select the permanent fallback color for your LEDs.")
-                    .font(Typography.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            ColorPicker("", selection: solidColorBinding, supportsOpacity: false)
-                .labelsHidden()
-        }
-        .padding()
-        .background(Color.haloCard)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.md))
     }
 
     private var metricsRow: some View {
