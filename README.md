@@ -36,6 +36,8 @@ Transform your Mac into an immersive ambient lighting experience! HaloSync conne
 ## 🛠 Features
 
 - **Blazing Fast Pipeline:** Uses Apple's native `ScreenCaptureKit` and hardware-accelerated `Metal` shaders to process frames with less than 20ms of end-to-end latency.
+- **Hardware-Offloaded Effects:** Standalone effects (Fire, Ocean, Rainbow, etc.) run directly on the WLED controller, resulting in **0% Mac CPU usage** and permanent persistence even if the app is closed.
+- **Wall Color Match:** Advanced color science algorithms compensate for non-white walls (e.g., orange or blue walls) so that your LEDs always project the true, intended color.
 - **Smart Letterbox Detection:** Automatically crops out black cinematic borders on movies so your LEDs don't turn off during widescreen playback.
 - **FluidEngine Smoothing:** Implements custom temporal interpolation to prevent jarring LED strobing, resulting in buttery smooth color transitions.
 - **Auto Discovery:** Zero-configuration setup via mDNS (Bonjour). Instantly finds WLED controllers on your LAN.
@@ -62,6 +64,8 @@ The real-time loop runs at a target 60FPS:
 2. **`MetalProcessor`**: Dispatches a compute shader (`ZoneSampler.metal`) that downsamples the 4K screen into a tiny array of edge colors mapping exactly to the physical LED count. 
 3. **`FluidEngine`**: Applies temporal smoothing (EMA filters) and brightness corrections.
 4. **`WLEDUDPController`**: Encodes the final array into WLED DDP / Raw UDP packets and blasts them over the network.
+
+When running in **Effects Mode** (e.g., Fire, Ocean, or Solid Color), the real-time pipeline is completely bypassed. Instead, HaloSync sends a single JSON API payload to trigger WLED's highly-optimized built-in hardware effects, completely eliminating CPU and network overhead.
 
 ### Building Locally
 
