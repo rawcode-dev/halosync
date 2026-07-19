@@ -122,14 +122,17 @@ jobs:
         path: HaloSync.dmg
         
     - name: Bump version and push tag
+      if: github.event_name != 'pull_request'
       id: tag_version
       uses: mathieudutour/github-tag-action@v6.2
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         default_bump: ${{ github.event.inputs.bump_type || 'patch' }}
         custom_tag: ${{ github.event.inputs.custom_tag }}
+        custom_release_rules: "feat:patch,fix:patch,chore:patch,refactor:patch,docs:patch,style:patch,test:patch,perf:patch"
         
     - name: Publish GitHub Release
+      if: github.event_name != 'pull_request'
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.tag_version.outputs.new_tag }}
