@@ -233,7 +233,8 @@ public final class AmbientPipeline: ObservableObject {
         var pSettings = ProcessingSettings.from(
             mode: settings.activeMode,
             brightness: settings.brightness,
-            ambientStrength: settings.ambientStrength
+            ambientStrength: settings.ambientStrength,
+            wallColor: settings.wallColor
         )
         pSettings.samplingDepth = settings.samplingDepth
         pSettings.blackBarDetection = settings.blackBarDetection

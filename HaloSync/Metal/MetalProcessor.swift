@@ -31,6 +31,7 @@ struct ZoneSamplerParams {
     var saturationBoost:   Float
     var textureWidth:      UInt32
     var textureHeight:     UInt32
+    var wallCompensation:  SIMD3<Float>
 }
 
 // MARK: - MetalProcessor
@@ -124,7 +125,8 @@ public final class MetalProcessor: @unchecked Sendable {
             gamma:             settings.gamma,
             saturationBoost:   settings.ambientStrength,
             textureWidth:      UInt32(texture.width),
-            textureHeight:     UInt32(texture.height)
+            textureHeight:     UInt32(texture.height),
+            wallCompensation:  settings.wallCompensation
         )
 
         // 4. Encode and dispatch.

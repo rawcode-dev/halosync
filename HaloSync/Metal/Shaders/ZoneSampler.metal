@@ -31,6 +31,7 @@ struct ZoneSamplerParams {
     float  saturationBoost;   // Boost color vibrancy
     uint   textureWidth;
     uint   textureHeight;
+    float3 wallCompensation;  // Applied to counteract physical wall color
 };
 
 // MARK: - Helpers
@@ -131,6 +132,9 @@ kernel void zoneSampler(
     if (lumFinal > 0.001f && lumFinal < 0.02f) {
         finalColor = max(finalColor, float3(0.02f)); // 2% minimum glow floor
     }
+    
+    // 4. Wall Color & White Balance Compensation
+    finalColor *= params.wallCompensation;
 
     outBuffer[gid].r = saturate(finalColor.r);
     outBuffer[gid].g = saturate(finalColor.g);

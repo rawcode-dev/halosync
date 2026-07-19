@@ -64,6 +64,10 @@ public struct HaloSyncSettings: Codable, Sendable, Equatable {
     public var whiteBalanceR: Float = 1.0
     public var whiteBalanceG: Float = 1.0
     public var whiteBalanceB: Float = 1.0
+    
+    /// Wall Color Match (R, G, B) — physical color of the wall behind the monitor.
+    /// Default is .one (white wall, meaning no compensation needed).
+    public var wallColor: SIMD3<Float> = .one
 
     /// UDP port override.
     public var udpPort: UInt16 = 4048

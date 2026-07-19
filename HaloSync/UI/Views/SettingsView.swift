@@ -6,6 +6,24 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var settings: HaloSyncSettingsStore
     @State private var showAdvanced = false
+    
+    private var wallColorBinding: Binding<Color> {
+        Binding(
+            get: {
+                let w = settings.value.wallColor
+                return Color(red: Double(w.x), green: Double(w.y), blue: Double(w.z))
+            },
+            set: { newColor in
+                if let nsColor = NSColor(newColor).usingColorSpace(.deviceRGB) {
+                    settings.value.wallColor = SIMD3<Float>(
+                        Float(nsColor.redComponent),
+                        Float(nsColor.greenComponent),
+                        Float(nsColor.blueComponent)
+                    )
+                }
+            }
+        )
+    }
 
     var body: some View {
         ScrollView {
@@ -23,6 +41,23 @@ struct SettingsView: View {
                     Toggle("Launch at Login", isOn: $settings.value.launchAtLogin)
                     Toggle("Start Minimized", isOn: $settings.value.startMinimized)
                     Toggle("Auto Reconnect", isOn: $settings.value.autoReconnect)
+                }
+                
+                // Color Calibration
+                settingsSection(title: "Color Calibration") {
+                    HStack {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
+                            Text("Wall Color Match")
+                                .font(Typography.bodyMedium)
+                            Text("Pick the physical color of the wall behind your monitor. HaloSync will automatically subtract this color to ensure accurate reflections.")
+                                .font(Typography.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: Spacing.xl)
+                        ColorPicker("", selection: wallColorBinding, supportsOpacity: false)
+                            .labelsHidden()
+                    }
                 }
 
                 // Advanced Settings (collapsed)
