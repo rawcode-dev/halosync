@@ -57,6 +57,32 @@ public struct WLEDJSONProtocol: LEDOutputProtocol, Sendable {
         req.httpBody = try? JSONSerialization.data(withJSONObject: payload)
         return req
     }
+    
+    /// Builds a POST request to set the WLED device to a permanent solid color effect.
+    public static func solidColorRequest(host: String, color: SIMD3<Float>) -> URLRequest? {
+        guard let url = URL(string: "http://\(host)/json/state") else { return nil }
+        var req = URLRequest(url: url, timeoutInterval: 3)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let r = Int((color.x * 255).rounded())
+        let g = Int((color.y * 255).rounded())
+        let b = Int((color.z * 255).rounded())
+        
+        // fx: 0 is the Solid color effect in WLED.
+        let payload: [String: Any] = [
+            "on": true,
+            "seg": [
+                [
+                    "fx": 0,
+                    "col": [[r, g, b]]
+                ]
+            ]
+        ]
+        
+        req.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+        return req
+    }
 
     /// Parses a WLED /json/info response into a partial DeviceInfo.
     public static func parseInfoResponse(_ data: Data, address: String) -> DeviceInfo? {

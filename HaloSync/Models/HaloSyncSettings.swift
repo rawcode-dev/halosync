@@ -24,6 +24,9 @@ public struct HaloSyncSettings: Codable, Sendable, Equatable {
 
     public var activeMode: AmbientMode = .ambient
     
+    /// The user's chosen Solid Color (R,G,B).
+    public var solidColor: SIMD3<Float> = SIMD3<Float>(1.0, 0.4, 0.0) // Orange default
+    
     /// The currently selected lighting effect ID (used when activeMode == .effects)
     public var activeEffectID: String? = nil
 

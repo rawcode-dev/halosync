@@ -20,7 +20,6 @@ public final class EffectsEngine: ObservableObject {
         FireEffect(),
         PulseEffect(),
         BreathingEffect(),
-        StaticEffect(),
         ColorCycleEffect(),
     ]
 

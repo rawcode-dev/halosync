@@ -118,6 +118,11 @@ public final class AppEnvironment: ObservableObject {
     /// Starts the ambient lighting pipeline using the currently discovered display and controller.
     public func startPipeline() async {
         guard !pipeline.isRunning else { return }
+        
+        if settings.value.activeMode == .solid {
+            await applySolidColorToHardware()
+            return
+        }
 
         // Pick the selected display, or fall back to main.
         let displays = displayDiscovery.currentDisplays()
@@ -182,6 +187,35 @@ public final class AppEnvironment: ObservableObject {
             }
         } catch {
             HaloLogger.network.warning("Failed to toggle power: \(error)")
+        }
+    }
+    
+    /// Sends a JSON API command to apply a permanent solid color to the hardware, 
+    /// taking into account the user's Wall Color Match compensation.
+    public func applySolidColorToHardware() async {
+        guard let device = controllerMonitor.discoveredDevice else { return }
+        
+        let s = settings.value
+        let pSettings = ProcessingSettings.from(
+            mode: s.activeMode,
+            brightness: s.brightness,
+            ambientStrength: s.ambientStrength,
+            wallColor: s.wallColor
+        )
+        
+        let comp = pSettings.wallCompensation
+        let compensatedColor = SIMD3<Float>(
+            s.solidColor.x * comp.x,
+            s.solidColor.y * comp.y,
+            s.solidColor.z * comp.z
+        )
+        
+        guard let req = WLEDJSONProtocol.solidColorRequest(host: device.address, color: compensatedColor) else { return }
+        do {
+            let (_, _) = try await URLSession.shared.data(for: req)
+            HaloLogger.app.info("Applied solid color to hardware: \(compensatedColor)")
+        } catch {
+            HaloLogger.network.warning("Failed to apply solid color: \(error)")
         }
     }
 
