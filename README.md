@@ -31,6 +31,26 @@ Transform your Mac into an immersive ambient lighting experience! HaloSync conne
 
 > **Note:** HaloSync is unsigned software. The first time you open it, you may need to **Right Click > Open** and accept the security prompt, or go to System Settings > Privacy & Security to allow it.
 
+### ⚠️ Troubleshooting macOS Screen Recording Permissions
+
+Because HaloSync is open-source and not signed with a paid Apple Developer certificate, macOS may continually ask for Screen Recording permissions every time you download an update. This is because macOS ties the permission to the exact file hash of the app, which changes on every update.
+
+If you are stuck in a loop where macOS asks for permission, you grant it, but it still fails, run these commands in your Terminal to fix it permanently:
+
+1. **Move HaloSync to your Applications folder** (Do not run it from Downloads).
+2. **Run these commands in Terminal:**
+   ```bash
+   # 1. Remove the Apple quarantine flag
+   sudo xattr -cr /Applications/HaloSync.app
+
+   # 2. Sign the app locally to your Mac (fixes the permission bug)
+   codesign --force --deep -s - /Applications/HaloSync.app
+
+   # 3. Wipe the corrupted Screen Recording database to start fresh
+   tccutil reset ScreenCapture
+   ```
+3. Open HaloSync again and grant permission one final time!
+
 ---
 
 ## 🛠 Features
