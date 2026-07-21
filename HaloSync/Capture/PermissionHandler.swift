@@ -5,6 +5,7 @@
 import ScreenCaptureKit
 import CoreGraphics
 import Foundation
+import AppKit
 
 // MARK: - PermissionStatus
 
@@ -39,5 +40,14 @@ public final class PermissionHandler: Sendable {
     public func requestPermission() async -> PermissionStatus {
         let granted = CGRequestScreenCaptureAccess()
         return granted ? .granted : .denied
+    }
+    
+    /// Opens the macOS System Settings app directly to the Screen Recording permission page.
+    @MainActor
+    public static func openSystemSettings() {
+        let urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+        if let url = URL(string: urlString) {
+            NSWorkspace.shared.open(url)
+        }
     }
 }

@@ -73,6 +73,10 @@ public final class AppEnvironment: ObservableObject {
     // MARK: - Display State
 
     @Published public private(set) var currentDisplays: [DisplayInfo] = []
+    
+    // MARK: - Permission State
+    
+    @Published public private(set) var hasScreenRecordingPermission: Bool = true
 
     // MARK: - Startup Sequence
 
@@ -83,6 +87,8 @@ public final class AppEnvironment: ObservableObject {
 
         // 1. Request screen recording permission (non-blocking if already granted).
         let permission = await permissionHandler.requestPermission()
+        self.hasScreenRecordingPermission = (permission == .granted)
+        
         guard permission == .granted else {
             HaloLogger.app.warning("Screen Recording permission not granted.")
             return
@@ -111,6 +117,23 @@ public final class AppEnvironment: ObservableObject {
         controllerMonitor.startDiscovery(storedAddress: settings.value.lastKnownControllerAddress)
 
         HaloLogger.app.info("Startup sequence complete.")
+    }
+    
+    /// explicitly re-checks permission. Useful if the user just granted it in settings.
+    public func checkPermission() async -> Bool {
+        let status = permissionHandler.checkStatus()
+        let isGranted = (status == .granted)
+        self.hasScreenRecordingPermission = isGranted
+        
+        if isGranted {
+            // If they just granted it and we weren't running, start tracking displays if needed.
+            if currentDisplays.isEmpty {
+                await startup()
+            } else if settings.value.activeMode != .effects && !pipeline.isRunning {
+                await startPipeline()
+            }
+        }
+        return isGranted
     }
 
     // MARK: - Pipeline Control
