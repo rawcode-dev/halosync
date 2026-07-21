@@ -11,14 +11,22 @@ struct ContentView: View {
     @State private var selectedTab: Tab = .home
 
     var body: some View {
-        NavigationSplitView {
-            Sidebar(selection: $selectedTab)
-                .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 220)
-        } detail: {
-            detail(for: selectedTab)
-                .navigationSplitViewColumnWidth(min: 640, ideal: 860)
+        ZStack {
+            NavigationSplitView {
+                Sidebar(selection: $selectedTab)
+                    .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 220)
+            } detail: {
+                detail(for: selectedTab)
+                    .navigationSplitViewColumnWidth(min: 640, ideal: 860)
+            }
+            .background(Color.haloBackground)
+            
+            if !env.hasScreenRecordingPermission {
+                PermissionOverlay()
+                    .transition(.opacity)
+                    .zIndex(100)
+            }
         }
-        .background(Color.haloBackground)
     }
 
     @ViewBuilder
