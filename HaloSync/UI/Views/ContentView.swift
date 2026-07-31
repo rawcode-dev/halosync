@@ -20,12 +20,6 @@ struct ContentView: View {
                     .navigationSplitViewColumnWidth(min: 640, ideal: 860)
             }
             .background(Color.haloBackground)
-            
-            if !env.hasScreenRecordingPermission {
-                PermissionOverlay()
-                    .transition(.opacity)
-                    .zIndex(100)
-            }
         }
     }
 

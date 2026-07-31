@@ -89,9 +89,8 @@ public final class AppEnvironment: ObservableObject {
         let permission = await permissionHandler.requestPermission()
         self.hasScreenRecordingPermission = (permission == .granted)
         
-        guard permission == .granted else {
-            HaloLogger.app.warning("Screen Recording permission not granted.")
-            return
+        if permission != .granted {
+            HaloLogger.app.warning("Screen Recording permission not granted. Some features will be disabled.")
         }
 
         // 2. Start tracking displays
