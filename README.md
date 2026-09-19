@@ -29,7 +29,7 @@ Transform your Mac into an immersive ambient lighting experience! HaloSync conne
 3. Open HaloSync from Launchpad.
 4. The app will automatically discover your WLED controller on the network. Customize your LED layout in the **Layout** tab, and toggle **Screen Sync** on!
 
-> **Note:** HaloSync is unsigned software. The first time you open it, you may need to **Right Click > Open** and accept the security prompt, or go to System Settings > Privacy & Security to allow it.
+> **Note:** HaloSync can control your lights and run hardware effects out of the box. However, to use the **Screen Sync** feature, macOS will ask you for Screen Recording permissions. If you download from GitHub, you may also need to **Right Click > Open** on the app the first time you run it.
 
 ### ⚠️ Troubleshooting macOS Screen Recording Permissions
 

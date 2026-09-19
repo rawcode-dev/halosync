@@ -23,6 +23,9 @@ struct HomeView: View {
                 headerSection
                 
                 VStack(spacing: Spacing.xl) {
+                    if !env.hasScreenRecordingPermission {
+                        PermissionBanner()
+                    }
                     statusRow
                     controlsSection
                 }
@@ -195,6 +198,7 @@ struct HomeView: View {
                     ))
                     .toggleStyle(.switch)
                     .tint(.haloPrimary)
+                    .disabled(!env.hasScreenRecordingPermission)
                 }
                 
                 Divider().opacity(0.5)
@@ -224,6 +228,8 @@ struct HomeView: View {
                                     Task { await env.startPipeline() }
                                 }
                             }
+                            .disabled(!env.hasScreenRecordingPermission)
+                            .opacity(!env.hasScreenRecordingPermission ? 0.5 : 1.0)
                         }
                     }
                 }
