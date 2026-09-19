@@ -96,7 +96,7 @@ struct EffectsView: View {
     
     private var activeEffectControls: some View {
         GlassCard {
-            VStack(spacing: Spacing.xl) {
+            VStack(spacing: Spacing.md) {
                 if settings.value.activeEffectID == "com.halosync.effect.static" {
                     HStack(spacing: Spacing.md) {
                         ColorPicker("", selection: solidColorBinding, supportsOpacity: false)
@@ -113,7 +113,7 @@ struct EffectsView: View {
                         }
                         Spacer()
                     }
-                    Divider().opacity(0.5)
+                    Divider().opacity(0.5).padding(.vertical, Spacing.xs)
                 }
 
                 HaloSlider(
@@ -128,6 +128,9 @@ struct EffectsView: View {
                     accentColors: [.haloPrimary, .haloAccent],
                     icon: "sun.max.fill"
                 )
+                .animation(.interactiveSpring, value: settings.value.brightness)
+                
+                Divider().opacity(0.5).padding(.vertical, Spacing.xs)
                 
                 HaloSlider(
                     title: "Effect Speed",
@@ -141,6 +144,9 @@ struct EffectsView: View {
                     accentColors: [.haloAccent, .haloPrimary],
                     icon: "hare.fill"
                 )
+                .animation(.interactiveSpring, value: settings.value.effectSpeed)
+                
+                Divider().opacity(0.5).padding(.vertical, Spacing.xs)
                 
                 HaloSlider(
                     title: "Effect Intensity",
@@ -154,6 +160,7 @@ struct EffectsView: View {
                     accentColors: [.haloPrimary, .haloSuccess],
                     icon: "flame.fill"
                 )
+                .animation(.interactiveSpring, value: settings.value.effectIntensity)
             }
         }
     }
