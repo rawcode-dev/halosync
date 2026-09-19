@@ -241,7 +241,14 @@ public final class AppEnvironment: ObservableObject {
             )
         }
         
-        guard let req = WLEDJSONProtocol.hardwareEffectRequest(host: device.address, config: hwConfig, color: targetColor) else { return }
+        guard let req = WLEDJSONProtocol.hardwareEffectRequest(
+            host: device.address,
+            config: hwConfig,
+            speed: s.effectSpeed,
+            intensity: s.effectIntensity,
+            brightness: s.brightness,
+            color: targetColor
+        ) else { return }
         do {
             let (_, _) = try await URLSession.shared.data(for: req)
             HaloLogger.app.info("Applied hardware effect: \(hwConfig.fxID)")

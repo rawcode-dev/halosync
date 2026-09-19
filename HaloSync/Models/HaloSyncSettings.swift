@@ -29,6 +29,12 @@ public struct HaloSyncSettings: Codable, Sendable, Equatable {
     
     /// The currently selected lighting effect ID (used when activeMode == .effects)
     public var activeEffectID: String? = nil
+    
+    /// Speed multiplier for hardware effects (0.0 - 1.0).
+    public var effectSpeed: Float = 0.5
+    
+    /// Intensity multiplier for hardware effects (0.0 - 1.0).
+    public var effectIntensity: Float = 0.5
 
     // MARK: - Startup
 

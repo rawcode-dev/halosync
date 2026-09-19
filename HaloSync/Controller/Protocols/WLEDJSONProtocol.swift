@@ -59,14 +59,14 @@ public struct WLEDJSONProtocol: LEDOutputProtocol, Sendable {
     }
     
     /// Builds a POST request to set the WLED device to a permanent solid color effect.
-    public static func solidColorRequest(host: String, color: SIMD3<Float>) -> URLRequest? {
+    public static func solidColorRequest(host: String, color: SIMD3<Float>, brightness: Float) -> URLRequest? {
         // Just forward to hardwareEffectRequest
         let config = WLEDHardwareEffect(fxID: 0, usesSolidColor: true)
-        return hardwareEffectRequest(host: host, config: config, color: color)
+        return hardwareEffectRequest(host: host, config: config, speed: 0.5, intensity: 0.5, brightness: brightness, color: color)
     }
     
     /// Builds a POST request to set the WLED device to a specific hardware effect.
-    public static func hardwareEffectRequest(host: String, config: WLEDHardwareEffect, color: SIMD3<Float>? = nil) -> URLRequest? {
+    public static func hardwareEffectRequest(host: String, config: WLEDHardwareEffect, speed: Float, intensity: Float, brightness: Float, color: SIMD3<Float>? = nil) -> URLRequest? {
         guard let url = URL(string: "http://\(host)/json/state") else { return nil }
         var req = URLRequest(url: url, timeoutInterval: 3)
         req.httpMethod = "POST"
@@ -74,13 +74,9 @@ public struct WLEDJSONProtocol: LEDOutputProtocol, Sendable {
         
         var segPayload: [String: Any] = ["fx": config.fxID]
         
-        if let speed = config.speed {
-            segPayload["sx"] = speed
-        }
-        
-        if let intensity = config.intensity {
-            segPayload["ix"] = intensity
-        }
+        // WLED speed and intensity are 0 - 255
+        segPayload["sx"] = Int((speed * 255.0).rounded())
+        segPayload["ix"] = Int((intensity * 255.0).rounded())
         
         if let paletteID = config.paletteID {
             segPayload["pal"] = paletteID
@@ -95,6 +91,7 @@ public struct WLEDJSONProtocol: LEDOutputProtocol, Sendable {
         
         let payload: [String: Any] = [
             "on": true,
+            "bri": Int((brightness * 255.0).rounded()),
             "seg": [segPayload]
         ]
         
