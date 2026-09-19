@@ -62,8 +62,8 @@ struct EffectsView: View {
                             .strokeBorder(Color.yellow.opacity(0.3), lineWidth: 1)
                     )
                 }
-                if settings.value.activeMode == .effects && settings.value.activeEffectID == "com.halosync.effect.static" {
-                    effectSettingsSection
+                if settings.value.activeMode == .effects {
+                    activeEffectControls
                 }
 
                 LazyVGrid(
@@ -94,25 +94,75 @@ struct EffectsView: View {
         .onReceive(timer) { _ in time += 1.0/60.0 }
     }
     
-    private var effectSettingsSection: some View {
-        HStack(spacing: Spacing.md) {
-            ColorPicker("", selection: solidColorBinding, supportsOpacity: false)
-                .labelsHidden()
-                .scaleEffect(1.2)
-                .padding(.leading, Spacing.xs)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Effect Color")
-                    .font(Typography.bodyMedium)
-                Text("Permanent hardware fallback color")
-                    .font(Typography.caption)
-                    .foregroundStyle(.secondary)
+    private var activeEffectControls: some View {
+        GlassCard {
+            VStack(spacing: Spacing.md) {
+                if settings.value.activeEffectID == "com.halosync.effect.static" {
+                    HStack(spacing: Spacing.md) {
+                        ColorPicker("", selection: solidColorBinding, supportsOpacity: false)
+                            .labelsHidden()
+                            .scaleEffect(1.2)
+                            .padding(.leading, Spacing.xs)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Effect Color")
+                                .font(Typography.bodyMedium)
+                            Text("Permanent hardware fallback color")
+                                .font(Typography.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    }
+                    Divider().opacity(0.5).padding(.vertical, Spacing.xs)
+                }
+
+                HaloSlider(
+                    title: "Brightness",
+                    value: Binding(
+                        get: { settings.value.brightness },
+                        set: { v in
+                            settings.value.brightness = v
+                            Task { await env.applyHardwareEffect() }
+                        }
+                    ),
+                    accentColors: [.haloPrimary, .haloAccent],
+                    icon: "sun.max.fill"
+                )
+                .animation(.interactiveSpring, value: settings.value.brightness)
+                
+                Divider().opacity(0.5).padding(.vertical, Spacing.xs)
+                
+                HaloSlider(
+                    title: "Effect Speed",
+                    value: Binding(
+                        get: { settings.value.effectSpeed },
+                        set: { v in
+                            settings.value.effectSpeed = v
+                            Task { await env.applyHardwareEffect() }
+                        }
+                    ),
+                    accentColors: [.haloAccent, .haloPrimary],
+                    icon: "hare.fill"
+                )
+                .animation(.interactiveSpring, value: settings.value.effectSpeed)
+                
+                Divider().opacity(0.5).padding(.vertical, Spacing.xs)
+                
+                HaloSlider(
+                    title: "Effect Intensity",
+                    value: Binding(
+                        get: { settings.value.effectIntensity },
+                        set: { v in
+                            settings.value.effectIntensity = v
+                            Task { await env.applyHardwareEffect() }
+                        }
+                    ),
+                    accentColors: [.haloPrimary, .haloSuccess],
+                    icon: "flame.fill"
+                )
+                .animation(.interactiveSpring, value: settings.value.effectIntensity)
             }
-            Spacer()
         }
-        .padding(Spacing.md)
-        .background(Color.haloCard)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous))
     }
 }
 
